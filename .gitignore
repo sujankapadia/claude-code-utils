@@ -1,6 +1,9 @@
 # Exported conversation transcripts
 claude-code-conversations/
 
+# Environment variables
+.env
+
 # Python
 __pycache__/
 *.py[cod]
