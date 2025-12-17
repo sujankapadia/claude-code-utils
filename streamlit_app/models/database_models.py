@@ -58,6 +58,7 @@ class ToolUse(BaseModel):
 
     tool_use_id: str = Field(..., description="Tool use ID (e.g., toolu_...)")
     session_id: str
+    message_index: int = Field(..., description="Index of message this tool use belongs to")
     tool_name: str = Field(..., description="Tool name (Bash, Write, etc.)")
     tool_input: Optional[str] = Field(None, description="JSON string of input")
     tool_result: Optional[str] = Field(None, description="Result text")

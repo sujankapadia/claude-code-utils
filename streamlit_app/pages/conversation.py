@@ -1,8 +1,9 @@
-"""Conversation viewer page."""
+"""Conversation viewer page with terminal-style chat interface."""
 
 import streamlit as st
 import sys
 from pathlib import Path
+from datetime import datetime
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
@@ -14,6 +15,16 @@ if "db_service" not in st.session_state:
     st.session_state.db_service = DatabaseService()
 
 db_service = st.session_state.db_service
+
+# Minimal custom CSS
+st.markdown("""
+<style>
+    .msg-divider {
+        border-top: 1px solid #333;
+        margin: 1.5rem 0;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 st.title("💬 View Conversation")
 
@@ -34,9 +45,17 @@ try:
         st.error(f"Session not found: {session_id}")
         st.stop()
 
-    # Display session info
-    st.subheader(f"Session: {session_id[:16]}...")
+    # Session header
+    col1, col2 = st.columns([3, 1])
 
+    with col1:
+        st.subheader(f"Session: {session_id[:16]}...")
+
+    with col2:
+        if st.button("← Back to Browser"):
+            st.switch_page("pages/browser.py")
+
+    # Session metrics
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Messages", session.message_count)
     col2.metric("Tool Uses", session.tool_use_count)
@@ -49,7 +68,7 @@ try:
     st.divider()
 
     # Filters
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns([2, 2, 1])
 
     with col1:
         role_filter = st.selectbox(
@@ -60,8 +79,21 @@ try:
     with col2:
         search_query = st.text_input("Search in messages:")
 
+    with col3:
+        st.write("")  # Spacing
+        st.write("")
+        show_tokens = st.checkbox("Show tokens", value=False)
+
     # Get messages
     messages = db_service.get_messages_for_session(session_id)
+
+    # Get tool uses and create a lookup by message index
+    tool_uses = db_service.get_tool_uses_for_session(session_id)
+    tools_by_message = {}
+    for tool in tool_uses:
+        if tool.message_index not in tools_by_message:
+            tools_by_message[tool.message_index] = []
+        tools_by_message[tool.message_index].append(tool)
 
     # Apply filters
     if role_filter != "All":
@@ -73,51 +105,66 @@ try:
             if m.content and search_query.lower() in m.content.lower()
         ]
 
+    # Filter out messages with no content UNLESS they have tool uses
+    messages = [
+        m for m in messages
+        if (m.content and m.content.strip()) or (m.message_index in tools_by_message)
+    ]
+
     st.write(f"**Showing {len(messages)} message(s)**")
 
-    # Display messages
+    # Scroll to bottom button
+    if len(messages) > 5:
+        if st.button("⬇️ Scroll to Bottom"):
+            st.markdown('<script>window.scrollTo(0, document.body.scrollHeight);</script>', unsafe_allow_html=True)
+
+    st.divider()
+
+    # Display messages in simple terminal style
     for msg in messages:
+        # Build header line
         role_emoji = "👤" if msg.role == "user" else "🤖"
-        role_color = "blue" if msg.role == "user" else "green"
+        role_label = msg.role.upper()
+        timestamp = msg.timestamp.strftime('%H:%M:%S')
 
-        with st.container():
-            st.markdown(f"### {role_emoji} **:{role_color}[{msg.role.title()}]** - {msg.timestamp.strftime('%H:%M:%S')}")
+        header_parts = [f"{role_emoji} **{role_label}**", f"`{timestamp}`"]
 
-            if msg.content:
-                st.markdown(msg.content)
-            else:
-                st.caption("(No text content)")
+        # Add token info if enabled
+        if show_tokens and msg.role == "assistant" and msg.input_tokens:
+            token_parts = [f"↓{msg.input_tokens:,}"]
+            if msg.output_tokens:
+                token_parts.append(f"↑{msg.output_tokens:,}")
+            if msg.cache_read_input_tokens:
+                token_parts.append(f"⚡{msg.cache_read_input_tokens:,}")
+            header_parts.append(f"`{' '.join(token_parts)}`")
 
-            # Show token usage for assistant messages
-            if msg.role == "assistant" and msg.input_tokens:
-                with st.expander("Token usage"):
-                    col1, col2, col3 = st.columns(3)
-                    col1.metric("Input", f"{msg.input_tokens:,}")
-                    col2.metric("Output", f"{msg.output_tokens or 0:,}")
-                    if msg.cache_read_input_tokens:
-                        col3.metric("Cache Read", f"{msg.cache_read_input_tokens:,}")
+        st.markdown(" · ".join(header_parts))
 
-            st.divider()
+        # Message content
+        if msg.content and msg.content.strip():
+            st.markdown(msg.content)
 
-    # Get tool uses
-    st.subheader("Tool Uses")
-
-    tool_uses = db_service.get_tool_uses_for_session(session_id)
-
-    if not tool_uses:
-        st.info("No tool uses in this session.")
-    else:
-        for tool in tool_uses:
-            error_badge = "❌" if tool.is_error else "✅"
-
-            with st.expander(f"{error_badge} {tool.tool_name} - {tool.timestamp.strftime('%H:%M:%S')}"):
-                if tool.tool_input:
-                    st.markdown("**Input:**")
-                    st.code(tool.tool_input, language="json")
+        # Tool uses
+        message_tools = tools_by_message.get(msg.message_index, [])
+        if message_tools:
+            for tool in message_tools:
+                error_indicator = " ❌" if tool.is_error else ""
+                st.markdown(f"🔧 **{tool.tool_name}**{error_indicator}")
 
                 if tool.tool_result:
-                    st.markdown("**Result:**")
-                    st.text(tool.tool_result[:1000] + ("..." if len(tool.tool_result) > 1000 else ""))
+                    result_text = tool.tool_result[:2000]
+                    if len(tool.tool_result) > 2000:
+                        result_text += "\n... (output truncated)"
+                    st.code(result_text, language="text")
+
+        # Divider between messages
+        st.markdown('<div class="msg-divider"></div>', unsafe_allow_html=True)
+
+    # Scroll to top button at bottom
+    if len(messages) > 5:
+        st.divider()
+        if st.button("⬆️ Scroll to Top"):
+            st.markdown('<script>window.scrollTo(0, 0);</script>', unsafe_allow_html=True)
 
 except Exception as e:
     st.error(f"Error loading conversation: {e}")

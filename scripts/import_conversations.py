@@ -210,6 +210,9 @@ def process_session(
             usage = msg.get('usage', {})
             cache_creation = usage.get('cache_creation', {})
 
+            # Store current message index for tool use tracking
+            current_message_index = len(messages)
+
             messages.append({
                 'role': msg.get('role'),
                 'content': content,
@@ -236,7 +239,8 @@ def process_session(
                                 tool_uses[tool_id] = {
                                     'name': item.get("name"),
                                     'input': item.get("input"),
-                                    'timestamp': timestamp
+                                    'timestamp': timestamp,
+                                    'message_index': current_message_index  # Track which message this belongs to
                                 }
 
                         # Tool result embedded in message content
@@ -294,11 +298,12 @@ def process_session(
         # Handle duplicate tool_use_ids across sessions (from resumed sessions)
         # Use INSERT OR IGNORE to skip duplicates
         cursor.execute("""
-            INSERT OR IGNORE INTO tool_uses (tool_use_id, session_id, tool_name, tool_input, tool_result, is_error, timestamp)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT OR IGNORE INTO tool_uses (tool_use_id, session_id, message_index, tool_name, tool_input, tool_result, is_error, timestamp)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         """, (
             tool_id,
             session_id,
+            tool_data['message_index'],
             tool_data['name'],
             json.dumps(tool_data['input']) if tool_data['input'] else None,
             tool_result_content,

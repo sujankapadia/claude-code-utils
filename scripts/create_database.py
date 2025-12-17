@@ -74,6 +74,7 @@ CREATE TABLE IF NOT EXISTS messages (
 CREATE TABLE IF NOT EXISTS tool_uses (
     tool_use_id TEXT PRIMARY KEY,       -- ID from toolUse entry (e.g., "toolu_...")
     session_id TEXT NOT NULL,           -- Foreign key to sessions table
+    message_index INTEGER NOT NULL,     -- Index of message this tool use belongs to
     tool_name TEXT NOT NULL,            -- Tool name (Bash, Write, Edit, Read, etc.)
     tool_input TEXT,                    -- JSON string of input parameters
     tool_result TEXT,                   -- Result text from corresponding toolResult
