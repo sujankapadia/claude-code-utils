@@ -29,6 +29,7 @@ This makes it easy to review past conversations, track your development process,
 
 ### Analytics & Database Features
 - **SQLite database** - Normalized schema with projects, sessions, messages, and tool uses
+- **Message-level tool tracking** - Each tool use is linked to its message via `message_index`
 - **Full-text search** - FTS5 search index for fast content search across all conversations
 - **Token tracking** - Comprehensive token usage statistics including cache metrics
 - **Tool analytics** - Track tool usage patterns, error rates, and performance
@@ -39,14 +40,21 @@ This makes it easy to review past conversations, track your development process,
 - **Multiple analysis types**:
   - **Technical Decisions**: Extract decisions, alternatives considered, and reasoning
   - **Error Patterns**: Identify error patterns, root causes, and resolutions
+  - **AI Agent Usage**: Analyze how developers use AI agents for prototyping, experimentation, and discovery
   - **PII Detection** (coming soon): Identify potential PII/sensitive data
-- **Templated prompts** - Jinja2-based prompt management for easy customization
+- **Templated prompts** - Markdown-based prompt management for easy customization
 - **Export results** - Save analysis as markdown files
+- **Configurable temperature** - Control analysis determinism (default: 0.1)
 
 ### 🎨 Streamlit Dashboard (NEW!)
 - **Interactive Web UI** - Beautiful dashboard for exploring your conversations
 - **Session Browser** - View and filter all your conversation sessions
-- **Conversation Viewer** - Read full transcripts with filtering and search
+- **Terminal-Style Conversation Viewer** - Clean, minimal interface mimicking Claude Code sessions:
+  - Inline tool calls and results
+  - Message-level tool use tracking with `message_index`
+  - Filtering by role and content search
+  - Optional token usage display
+  - Auto-hide empty messages
 - **Analysis Runner** - Run AI-powered analysis directly from the UI
 - **Analytics Dashboard** - Interactive charts and statistics:
   - Token usage trends over time
@@ -190,6 +198,9 @@ python3 scripts/analyze_session.py <session-id> --type=decisions
 # Analyze error patterns
 python3 scripts/analyze_session.py <session-id> --type=errors
 
+# Analyze AI agent usage patterns
+python3 scripts/analyze_session.py <session-id> --type=agent_usage
+
 # Save to file
 python3 scripts/analyze_session.py <session-id> --type=decisions --output=analysis.md
 ```
@@ -319,10 +330,11 @@ claude-code-utils/
 │   ├── models/                     # Pydantic data models
 │   ├── services/                   # Business logic layer
 │   └── pages/                      # UI pages
-├── prompts/                        # Jinja2 analysis prompt templates
+├── prompts/                        # Analysis prompt templates
 │   ├── metadata.yaml               # Analysis type metadata
 │   ├── decisions.md                # Technical decisions prompt
-│   └── errors.md                   # Error patterns prompt
+│   ├── errors.md                   # Error patterns prompt
+│   └── agent_usage.md              # AI agent usage analysis prompt
 ├── install.sh                      # Installation script
 └── run_dashboard.sh                # Launch dashboard script
 ```
