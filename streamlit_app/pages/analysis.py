@@ -2,13 +2,67 @@
 
 import streamlit as st
 import sys
+import subprocess
 from pathlib import Path
+from datetime import datetime
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from streamlit_app.services import DatabaseService, AnalysisService, OpenRouterProvider
 from streamlit_app.models import AnalysisType
+
+
+def get_git_commit_id() -> str:
+    """Get current git commit ID."""
+    try:
+        result = subprocess.run(
+            ["git", "rev-parse", "HEAD"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+        if result.returncode == 0:
+            return result.stdout.strip()
+        return "unknown"
+    except Exception:
+        return "unknown"
+
+
+def format_analysis_with_metadata(
+    result_text: str,
+    analysis_type: str,
+    analysis_name: str,
+    session_id: str,
+    project_name: str,
+    model_name: str,
+    provider_name: str,
+    input_tokens: int,
+    output_tokens: int,
+) -> str:
+    """Format analysis result with traceability metadata."""
+    git_commit = get_git_commit_id()
+    timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+    metadata = f"""# {analysis_name}
+
+## Traceability Information
+
+- **Project:** {project_name}
+- **Session ID:** `{session_id}`
+- **Analysis Type:** `{analysis_type}`
+- **Generated:** {timestamp}
+- **LLM Provider:** {provider_name}
+- **Model:** `{model_name}`
+- **Input Tokens:** {input_tokens:,}
+- **Output Tokens:** {output_tokens:,}
+- **Tool Version:** `{git_commit[:8]}`
+- **Full Commit:** `{git_commit}`
+
+---
+
+"""
+    return metadata + result_text
 
 # Initialize services
 if "db_service" not in st.session_state:
@@ -241,28 +295,43 @@ try:
                 st.markdown("### Analysis Result")
                 st.markdown(result.result_text)
 
+                # Prepare formatted output with metadata
+                provider_name = type(analysis_service.provider).__name__.replace("Provider", "")
+                formatted_result = format_analysis_with_metadata(
+                    result_text=result.result_text,
+                    analysis_type=selected_analysis_type.value,
+                    analysis_name=available_types[selected_analysis_type.value].name,
+                    session_id=selected_session_id,
+                    project_name=session.project_name,
+                    model_name=result.model_name or "unknown",
+                    provider_name=provider_name,
+                    input_tokens=result.input_tokens or 0,
+                    output_tokens=result.output_tokens or 0,
+                )
+
+                # Generate unique filename with timestamp
+                timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
+                # Sanitize project name for filename (remove special chars)
+                safe_project_name = "".join(c if c.isalnum() or c in ('-', '_') else '_' for c in session.project_name)
+                filename = f"{safe_project_name}_{selected_analysis_type.value}_{timestamp_str}.md"
+
                 # Save to file if requested
                 if save_to_file:
                     output_dir = Path.home() / "claude-conversations" / "analyses"
                     output_dir.mkdir(exist_ok=True)
 
-                    filename = f"{selected_session_id}_{selected_analysis_type.value}.md"
                     output_path = output_dir / filename
 
                     with open(output_path, "w") as f:
-                        f.write(f"# {available_types[selected_analysis_type.value].name}\n\n")
-                        f.write(f"**Session:** {selected_session_id}\n")
-                        f.write(f"**Date:** {result.created_at}\n\n")
-                        f.write("---\n\n")
-                        f.write(result.result_text)
+                        f.write(formatted_result)
 
                     st.success(f"💾 Saved to: `{output_path}`")
 
                 # Download button
                 st.download_button(
                     label="📥 Download as Markdown",
-                    data=result.result_text,
-                    file_name=f"{selected_session_id}_{selected_analysis_type.value}.md",
+                    data=formatted_result,
+                    file_name=filename,
                     mime="text/markdown",
                 )
 
