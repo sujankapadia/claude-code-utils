@@ -1,15 +1,21 @@
 #!/usr/bin/env python3
 """
-Analyze Claude Code conversation sessions using Gemini 2.5 Flash.
+Analyze Claude Code conversation sessions using OpenRouter or Gemini.
 
 This script provides multiple analysis types for conversation transcripts:
 - decisions: Technical decisions, alternatives, and reasoning
 - errors: Error patterns, root causes, and resolutions
+- agent_usage: How AI agents are used
+- custom: Custom analysis with your own prompt
 
 Usage:
+    # Using OpenRouter (recommended)
     python3 analyze_session.py <session_id> --type=decisions
-    python3 analyze_session.py <session_id> --type=errors
-    python3 analyze_session.py <session_id> --type=errors --output=analysis.md
+    python3 analyze_session.py <session_id> --type=errors --model=anthropic/claude-sonnet-4.5
+    python3 analyze_session.py <session_id> --type=custom --prompt="Summarize key insights"
+
+    # Using Google Gemini (direct)
+    GOOGLE_API_KEY=xxx python3 analyze_session.py <session_id> --type=decisions
 """
 
 import argparse
@@ -18,10 +24,14 @@ import os
 import sys
 from pathlib import Path
 from typing import Optional, Dict
-import google.generativeai as genai
 from dotenv import load_dotenv
 import yaml
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from streamlit_app.services.llm_providers import create_provider, OpenRouterProvider
 
 # Load environment variables from .env file
 load_dotenv()
@@ -118,19 +128,27 @@ def get_session_transcript(session_id: str, db_path: str) -> Optional[str]:
         return None
 
 
-def analyze_with_gemini(transcript_path: str, api_key: str, analysis_type: str, custom_prompt: Optional[str] = None) -> str:
+def analyze_with_llm(
+    transcript_path: str,
+    analysis_type: str,
+    custom_prompt: Optional[str] = None,
+    model: Optional[str] = None
+) -> str:
     """
-    Analyze transcript using Gemini 2.5 Flash.
+    Analyze transcript using configured LLM provider.
 
     Args:
         transcript_path: Path to conversation transcript
-        api_key: Google AI API key
         analysis_type: Type of analysis to perform
         custom_prompt: Custom prompt text (required if analysis_type is 'custom')
+        model: Model to use (provider-specific)
 
     Returns:
         Analysis text
     """
+    # Create provider from environment
+    provider = create_provider(default_model=model)
+
     # Read transcript
     with open(transcript_path, 'r', encoding='utf-8') as f:
         transcript = f.read()
@@ -158,18 +176,19 @@ def analyze_with_gemini(transcript_path: str, api_key: str, analysis_type: str, 
 
         analysis_name = metadata['name']
 
-    # Configure Gemini
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel('gemini-2.0-flash-exp')
+    # Determine provider name
+    provider_name = type(provider).__name__.replace("Provider", "")
+    model_name = model or getattr(provider, 'default_model', 'default')
 
-    print(f"🤖 Running {analysis_name} with Gemini 2.5 Flash...")
+    print(f"🤖 Running {analysis_name} with {provider_name} ({model_name})...")
     print(f"📊 Transcript size: {len(transcript):,} characters")
 
-    # Generate analysis with low temperature for more deterministic output
-    response = model.generate_content(
-        prompt,
-        generation_config=genai.types.GenerationConfig(temperature=0.1)
-    )
+    # Generate analysis
+    response = provider.generate(prompt, model=model)
+
+    # Print token usage if available
+    if response.input_tokens or response.output_tokens:
+        print(f"📈 Token usage: {response.input_tokens or 0:,} input, {response.output_tokens or 0:,} output")
 
     return response.text
 
@@ -188,8 +207,9 @@ Analysis Types:
 
 Examples:
   %(prog)s abc123 --type=decisions
-  %(prog)s abc123 --type=errors --output=error-analysis.md
-  %(prog)s abc123 --type=custom --prompt="Summarize the main topics discussed"
+  %(prog)s abc123 --type=errors --model=anthropic/claude-sonnet-4.5
+  %(prog)s abc123 --type=custom --prompt="Summarize main topics" --output=summary.md
+  %(prog)s abc123 --type=agent_usage --model=openai/gpt-5.2-chat
         """
     )
     parser.add_argument('session_id', nargs='?', help='Session UUID to analyze')
@@ -203,6 +223,10 @@ Examples:
         '--prompt',
         help='Custom analysis prompt (required when --type=custom)'
     )
+    parser.add_argument(
+        '--model',
+        help='Model to use (e.g., "deepseek/deepseek-v3.2", "anthropic/claude-sonnet-4.5"). Defaults to provider default or OPENROUTER_MODEL env var.'
+    )
     parser.add_argument('--project', help='Analyze all sessions for a project (not yet implemented)')
     parser.add_argument(
         '--db',
@@ -213,11 +237,16 @@ Examples:
 
     args = parser.parse_args()
 
-    # Get API key from environment
-    api_key = os.getenv('GOOGLE_API_KEY')
-    if not api_key:
-        print("❌ Error: GOOGLE_API_KEY environment variable not set", file=sys.stderr)
-        print("Get your API key from: https://aistudio.google.com/app/apikey", file=sys.stderr)
+    # Check for API key (either OpenRouter or Google)
+    openrouter_key = os.getenv('OPENROUTER_API_KEY')
+    google_key = os.getenv('GOOGLE_API_KEY')
+
+    if not openrouter_key and not google_key:
+        print("❌ Error: No LLM API key configured", file=sys.stderr)
+        print("\nOption 1 (Recommended): Set OPENROUTER_API_KEY", file=sys.stderr)
+        print("  Get your API key from: https://openrouter.ai/keys", file=sys.stderr)
+        print("\nOption 2: Set GOOGLE_API_KEY", file=sys.stderr)
+        print("  Get your API key from: https://aistudio.google.com/app/apikey", file=sys.stderr)
         sys.exit(1)
 
     # Validate arguments
@@ -245,7 +274,12 @@ Examples:
 
     # Analyze
     try:
-        analysis = analyze_with_gemini(transcript_path, api_key, args.type, custom_prompt=args.prompt)
+        analysis = analyze_with_llm(
+            transcript_path,
+            args.type,
+            custom_prompt=args.prompt,
+            model=args.model
+        )
 
         # Output
         if args.output:

@@ -36,13 +36,18 @@ This makes it easy to review past conversations, track your development process,
 - **MCP server integration** - Analyze MCP server usage and patterns
 
 ### AI-Powered Analysis
-- **LLM-based analysis** - Use Gemini 2.5 Flash to analyze conversations (~87% cheaper than Claude)
+- **Multiple LLM providers** - Use OpenRouter (300+ models) or Google Gemini directly
+- **Curated model selection** - Quick-select from 13 newest premium models (2025):
+  - **Budget tier**: Qwen3, Llama 4 Scout, Mistral Small ($0.06-$0.10 per 1M tokens)
+  - **Balanced tier**: DeepSeek V3.2, Gemini 3 Flash, Claude Haiku 4.5, GPT-5.1/5.2 ($0.26-$1.75)
+  - **Premium tier**: Gemini 3 Pro, Claude Sonnet 4.5, Grok 4, Claude Opus 4.5 ($2-$5)
+- **Browse 300+ models** - Access full OpenRouter catalog with pricing and context info
 - **Multiple analysis types**:
   - **Technical Decisions**: Extract decisions, alternatives considered, and reasoning
   - **Error Patterns**: Identify error patterns, root causes, and resolutions
   - **AI Agent Usage**: Analyze how developers use AI agents for prototyping, experimentation, and discovery
-  - **PII Detection** (coming soon): Identify potential PII/sensitive data
-- **Templated prompts** - Markdown-based prompt management for easy customization
+  - **Custom Analysis**: Enter your own analysis prompts
+- **Templated prompts** - Jinja2-based prompt management for easy customization
 - **Export results** - Save analysis as markdown files
 - **Configurable temperature** - Control analysis determinism (default: 0.1)
 
@@ -189,28 +194,45 @@ The dashboard will open at `http://localhost:8501`.
 
 ### 4. Run Analysis (CLI)
 
-Analyze conversations from the command line:
+#### Setup API Key
+
+**Option 1: OpenRouter (Recommended)** - Access 300+ models
+```bash
+export OPENROUTER_API_KEY="sk-or-your-key-here"
+```
+Get your key from [OpenRouter](https://openrouter.ai/keys)
+
+**Option 2: Google Gemini (Direct)**
+```bash
+export GOOGLE_API_KEY="your-api-key-here"
+```
+Get your key from [Google AI Studio](https://aistudio.google.com/app/apikey)
+
+#### Run Analysis
 
 ```bash
-# Analyze technical decisions
+# Using default model (DeepSeek V3.2)
 python3 scripts/analyze_session.py <session-id> --type=decisions
 
-# Analyze error patterns
-python3 scripts/analyze_session.py <session-id> --type=errors
+# Specify a model
+python3 scripts/analyze_session.py <session-id> --type=errors --model=anthropic/claude-sonnet-4.5
 
-# Analyze AI agent usage patterns
-python3 scripts/analyze_session.py <session-id> --type=agent_usage
+# Analyze AI agent usage
+python3 scripts/analyze_session.py <session-id> --type=agent_usage --model=openai/gpt-5.2-chat
+
+# Custom analysis with your own prompt
+python3 scripts/analyze_session.py <session-id> --type=custom --prompt="Summarize main topics discussed"
 
 # Save to file
 python3 scripts/analyze_session.py <session-id> --type=decisions --output=analysis.md
 ```
 
-**Note**: Set your Google AI API key first:
-```bash
-export GOOGLE_API_KEY="your-api-key-here"
-```
-
-Get your key from [Google AI Studio](https://aistudio.google.com/app/apikey).
+**Popular Models:**
+- `deepseek/deepseek-v3.2` - Default, best balance ($0.26/1M)
+- `anthropic/claude-sonnet-4.5` - Highest quality ($3.00/1M)
+- `openai/gpt-5.2-chat` - Latest GPT ($1.75/1M)
+- `google/gemini-3-flash-preview` - 1M context ($0.50/1M)
+- `qwen/qwen3-vl-8b-instruct` - Cheapest ($0.06/1M)
 
 ### 5. Search Conversations
 
@@ -350,11 +372,12 @@ claude-code-utils/
 
 - **PII/sensitive data detection** - Identify potential PII in conversations
 - **Vector embeddings** - Add semantic search across all conversations
-- **Custom analysis types** - User-defined analysis prompts
 - **Export formats** - Support for additional export formats (HTML, PDF)
 - **Cloud sync** - Optional backup to cloud storage
 - **Comparative analysis** - Compare patterns across multiple sessions
 - **Real-time analysis** - Analyze conversations as they happen
+- **Cost tracking** - Track LLM API costs per analysis
+- **Model comparison** - Compare analysis quality across different models
 
 ## Contributing
 

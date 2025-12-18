@@ -7,29 +7,47 @@ from pathlib import Path
 from typing import Dict, Optional
 import yaml
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound
-import google.generativeai as genai
 
 from streamlit_app.models import AnalysisType, AnalysisResult, AnalysisTypeMetadata
+from streamlit_app.services.llm_providers import LLMProvider, create_provider
 
 
 class AnalysisService:
     """Service for running conversation analysis."""
 
-    def __init__(self, api_key: Optional[str] = None, db_path: Optional[str] = None):
+    def __init__(
+        self,
+        provider: Optional[LLMProvider] = None,
+        db_path: Optional[str] = None,
+        default_model: Optional[str] = None,
+    ):
         """
         Initialize analysis service.
 
         Args:
-            api_key: Google AI API key. Defaults to GOOGLE_API_KEY env var.
+            provider: LLM provider instance. If None, creates provider from environment.
             db_path: Path to database. Defaults to ~/claude-conversations/conversations.db
+            default_model: Default model to use for analysis
         """
-        self.api_key = api_key or os.getenv("GOOGLE_API_KEY")
+        # Initialize provider
+        if provider is None:
+            self.provider = create_provider(default_model=default_model)
+        else:
+            self.provider = provider
+
+        # Set database path
         if db_path is None:
             db_path = str(Path.home() / "claude-conversations" / "conversations.db")
         self.db_path = db_path
 
         # Load prompt metadata
         self.metadata, self.jinja_env = self._load_prompts()
+
+    @property
+    def api_key(self) -> Optional[str]:
+        """Legacy property for backwards compatibility."""
+        # Check if provider has API key
+        return getattr(self.provider, 'api_key', None)
 
     def _load_prompts(self) -> tuple[Dict[str, AnalysisTypeMetadata], Environment]:
         """
@@ -134,7 +152,11 @@ class AnalysisService:
             return None
 
     def analyze_session(
-        self, session_id: str, analysis_type: AnalysisType, custom_prompt: Optional[str] = None
+        self,
+        session_id: str,
+        analysis_type: AnalysisType,
+        custom_prompt: Optional[str] = None,
+        model: Optional[str] = None,
     ) -> AnalysisResult:
         """
         Analyze a session with the specified analysis type.
@@ -143,19 +165,15 @@ class AnalysisService:
             session_id: Session UUID
             analysis_type: Type of analysis to perform
             custom_prompt: Custom prompt text (required if analysis_type is CUSTOM)
+            model: Model to use (provider-specific). If None, uses provider's default.
 
         Returns:
             AnalysisResult with the analysis output
 
         Raises:
-            ValueError: If API key not configured, analysis type not found, or custom_prompt missing
+            ValueError: If analysis type not found or custom_prompt missing
             FileNotFoundError: If transcript not found
         """
-        if not self.api_key:
-            raise ValueError(
-                "Google API key not configured. Set GOOGLE_API_KEY environment variable."
-            )
-
         # Get transcript
         transcript_path = self.get_transcript_path(session_id)
         if not transcript_path:
@@ -186,29 +204,14 @@ class AnalysisService:
             except TemplateNotFound:
                 raise ValueError(f"Template file not found: {metadata.file}")
 
-        # Configure Gemini
-        genai.configure(api_key=self.api_key)
-        model = genai.GenerativeModel("gemini-2.0-flash-exp")
-
-        # Generate analysis with low temperature for more deterministic output
-        response = model.generate_content(
-            prompt,
-            generation_config=genai.types.GenerationConfig(temperature=0.1)
-        )
-
-        # Extract token usage if available
-        usage_metadata = getattr(response, "usage_metadata", None)
-        input_tokens = None
-        output_tokens = None
-        if usage_metadata:
-            input_tokens = getattr(usage_metadata, "prompt_token_count", None)
-            output_tokens = getattr(usage_metadata, "candidates_token_count", None)
+        # Generate analysis using provider
+        llm_response = self.provider.generate(prompt, model=model)
 
         return AnalysisResult(
             session_id=session_id,
             analysis_type=analysis_type,
-            result_text=response.text,
-            input_tokens=input_tokens,
-            output_tokens=output_tokens,
-            model_name="gemini-2.0-flash-exp",
+            result_text=llm_response.text,
+            input_tokens=llm_response.input_tokens,
+            output_tokens=llm_response.output_tokens,
+            model_name=llm_response.model_name,
         )

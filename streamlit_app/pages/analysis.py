@@ -7,7 +7,7 @@ from pathlib import Path
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from streamlit_app.services import DatabaseService, AnalysisService
+from streamlit_app.services import DatabaseService, AnalysisService, OpenRouterProvider
 from streamlit_app.models import AnalysisType
 
 # Initialize services
@@ -23,17 +23,28 @@ analysis_service = st.session_state.analysis_service
 st.title("🔬 Run Analysis")
 
 st.markdown("""
-Perform AI-powered analysis on your conversation sessions using Gemini 2.5 Flash.
+Perform AI-powered analysis on your conversation sessions using state-of-the-art LLMs.
 """)
 
 # Check for API key
 api_key_configured = analysis_service.api_key is not None
 
 if not api_key_configured:
-    st.error("⚠️ Google API key not configured!")
+    st.error("⚠️ LLM API key not configured!")
     st.markdown("""
-    To use the analysis feature, you need to set your Google AI API key:
+    To use the analysis feature, you need to set an API key:
 
+    **Option 1: OpenRouter (Recommended)** - Access 300+ models
+    1. Get an API key from [OpenRouter](https://openrouter.ai/keys)
+    2. Set the `OPENROUTER_API_KEY` environment variable
+    3. Restart the Streamlit app
+
+    ```bash
+    export OPENROUTER_API_KEY="sk-or-your-key-here"
+    streamlit run streamlit_app/app.py
+    ```
+
+    **Option 2: Google Gemini (Direct)**
     1. Get an API key from [Google AI Studio](https://aistudio.google.com/app/apikey)
     2. Set the `GOOGLE_API_KEY` environment variable
     3. Restart the Streamlit app
@@ -122,6 +133,71 @@ try:
 
     st.divider()
 
+    # Model selector (only show if using OpenRouter)
+    selected_model = None
+    if isinstance(analysis_service.provider, OpenRouterProvider):
+        st.subheader("Model Selection")
+
+        # Quick select models
+        model_options = {label: model_id for label, model_id in OpenRouterProvider.QUICK_SELECT_MODELS}
+
+        selected_model_label = st.selectbox(
+            "Choose model:",
+            options=list(model_options.keys()),
+            index=4,  # Default to DeepSeek V3.2
+            help="Quick select from curated list of newest premium models. Default uses env var OPENROUTER_MODEL or DeepSeek V3.2."
+        )
+
+        selected_model = model_options[selected_model_label]
+
+        # Advanced: All models expander
+        with st.expander("🔍 Advanced: Browse All Models"):
+            st.markdown("Load the full catalog of 300+ models from OpenRouter:")
+
+            if st.button("Load All Models", help="Fetches the complete list from OpenRouter API"):
+                with st.spinner("Fetching models from OpenRouter..."):
+                    try:
+                        all_models = OpenRouterProvider.fetch_all_models()
+
+                        # Filter for text generation models
+                        text_models = [
+                            m for m in all_models
+                            if 'text' in m['architecture']['output_modalities']
+                            and m['pricing']['prompt'] != '0'
+                        ]
+
+                        # Sort by newest first
+                        text_models.sort(key=lambda m: m['created'], reverse=True)
+
+                        st.success(f"✅ Loaded {len(text_models)} models!")
+
+                        # Create searchable dataframe
+                        import pandas as pd
+
+                        df_data = []
+                        for m in text_models[:100]:  # Limit to 100 for performance
+                            prompt_price = float(m['pricing']['prompt']) * 1_000_000
+                            completion_price = float(m['pricing']['completion']) * 1_000_000
+                            df_data.append({
+                                'Model ID': m['id'],
+                                'Name': m['name'],
+                                'Input $/1M': f"${prompt_price:.2f}",
+                                'Output $/1M': f"${completion_price:.2f}",
+                                'Context': f"{m['context_length']:,}",
+                            })
+
+                        df = pd.DataFrame(df_data)
+
+                        st.markdown("**Top 100 newest models:**")
+                        st.dataframe(df, use_container_width=True, height=400)
+
+                        st.info("💡 To use a model from this list, copy the Model ID and set it as OPENROUTER_MODEL environment variable, or select from quick list above.")
+
+                    except Exception as e:
+                        st.error(f"Failed to fetch models: {e}")
+
+        st.divider()
+
     # Run analysis
     st.subheader("Run Analysis")
 
@@ -144,7 +220,10 @@ try:
             try:
                 # Run analysis
                 result = analysis_service.analyze_session(
-                    selected_session_id, selected_analysis_type, custom_prompt=custom_prompt
+                    selected_session_id,
+                    selected_analysis_type,
+                    custom_prompt=custom_prompt,
+                    model=selected_model,
                 )
 
                 st.success("✅ Analysis complete!")
