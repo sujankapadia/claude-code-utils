@@ -12,6 +12,7 @@ class AnalysisType(str, Enum):
     DECISIONS = "decisions"
     ERRORS = "errors"
     AGENT_USAGE = "agent_usage"
+    CUSTOM = "custom"
     # Future types can be added here
     # PII = "pii"
 

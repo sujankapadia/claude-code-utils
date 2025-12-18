@@ -134,7 +134,7 @@ class AnalysisService:
             return None
 
     def analyze_session(
-        self, session_id: str, analysis_type: AnalysisType
+        self, session_id: str, analysis_type: AnalysisType, custom_prompt: Optional[str] = None
     ) -> AnalysisResult:
         """
         Analyze a session with the specified analysis type.
@@ -142,12 +142,13 @@ class AnalysisService:
         Args:
             session_id: Session UUID
             analysis_type: Type of analysis to perform
+            custom_prompt: Custom prompt text (required if analysis_type is CUSTOM)
 
         Returns:
             AnalysisResult with the analysis output
 
         Raises:
-            ValueError: If API key not configured or analysis type not found
+            ValueError: If API key not configured, analysis type not found, or custom_prompt missing
             FileNotFoundError: If transcript not found
         """
         if not self.api_key:
@@ -166,17 +167,24 @@ class AnalysisService:
         with open(transcript_path, "r", encoding="utf-8") as f:
             transcript = f.read()
 
-        # Get metadata for this analysis type
-        metadata = self.metadata.get(analysis_type.value)
-        if not metadata:
-            raise ValueError(f"Unknown analysis type: {analysis_type}")
+        # Build prompt based on analysis type
+        if analysis_type == AnalysisType.CUSTOM:
+            if not custom_prompt:
+                raise ValueError("custom_prompt is required for CUSTOM analysis type")
+            # Automatically append the transcript
+            prompt = f"{custom_prompt}\n\n---\n\nCONVERSATION TRANSCRIPT:\n\n{transcript}"
+        else:
+            # Get metadata for this analysis type
+            metadata = self.metadata.get(analysis_type.value)
+            if not metadata:
+                raise ValueError(f"Unknown analysis type: {analysis_type}")
 
-        # Load and render Jinja2 template
-        try:
-            template = self.jinja_env.get_template(metadata.file)
-            prompt = template.render(transcript=transcript)
-        except TemplateNotFound:
-            raise ValueError(f"Template file not found: {metadata.file}")
+            # Load and render Jinja2 template
+            try:
+                template = self.jinja_env.get_template(metadata.file)
+                prompt = template.render(transcript=transcript)
+            except TemplateNotFound:
+                raise ValueError(f"Template file not found: {metadata.file}")
 
         # Configure Gemini
         genai.configure(api_key=self.api_key)

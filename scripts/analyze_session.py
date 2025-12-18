@@ -118,7 +118,7 @@ def get_session_transcript(session_id: str, db_path: str) -> Optional[str]:
         return None
 
 
-def analyze_with_gemini(transcript_path: str, api_key: str, analysis_type: str) -> str:
+def analyze_with_gemini(transcript_path: str, api_key: str, analysis_type: str, custom_prompt: Optional[str] = None) -> str:
     """
     Analyze transcript using Gemini 2.5 Flash.
 
@@ -126,6 +126,7 @@ def analyze_with_gemini(transcript_path: str, api_key: str, analysis_type: str) 
         transcript_path: Path to conversation transcript
         api_key: Google AI API key
         analysis_type: Type of analysis to perform
+        custom_prompt: Custom prompt text (required if analysis_type is 'custom')
 
     Returns:
         Analysis text
@@ -134,29 +135,41 @@ def analyze_with_gemini(transcript_path: str, api_key: str, analysis_type: str) 
     with open(transcript_path, 'r', encoding='utf-8') as f:
         transcript = f.read()
 
-    # Get metadata for this analysis type
-    metadata = PROMPT_METADATA.get(analysis_type)
-    if not metadata:
-        raise ValueError(f"Unknown analysis type: {analysis_type}")
+    # Build prompt based on analysis type
+    if analysis_type == 'custom':
+        if not custom_prompt:
+            raise ValueError("custom_prompt is required for 'custom' analysis type")
+        # Automatically append the transcript
+        prompt = f"{custom_prompt}\n\n---\n\nCONVERSATION TRANSCRIPT:\n\n{transcript}"
+        analysis_name = "Custom Analysis"
+    else:
+        # Get metadata for this analysis type
+        metadata = PROMPT_METADATA.get(analysis_type)
+        if not metadata:
+            raise ValueError(f"Unknown analysis type: {analysis_type}")
 
-    # Load and render Jinja2 template
-    try:
-        template_file = metadata['file']
-        template = JINJA_ENV.get_template(template_file)
-        prompt = template.render(transcript=transcript)
-    except TemplateNotFound:
-        raise ValueError(f"Template file not found: {metadata['file']}")
+        # Load and render Jinja2 template
+        try:
+            template_file = metadata['file']
+            template = JINJA_ENV.get_template(template_file)
+            prompt = template.render(transcript=transcript)
+        except TemplateNotFound:
+            raise ValueError(f"Template file not found: {metadata['file']}")
+
+        analysis_name = metadata['name']
 
     # Configure Gemini
     genai.configure(api_key=api_key)
     model = genai.GenerativeModel('gemini-2.0-flash-exp')
 
-    analysis_name = metadata['name']
     print(f"🤖 Running {analysis_name} with Gemini 2.5 Flash...")
     print(f"📊 Transcript size: {len(transcript):,} characters")
 
-    # Generate analysis
-    response = model.generate_content(prompt)
+    # Generate analysis with low temperature for more deterministic output
+    response = model.generate_content(
+        prompt,
+        generation_config=genai.types.GenerationConfig(temperature=0.1)
+    )
 
     return response.text
 
@@ -168,20 +181,27 @@ def main():
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Analysis Types:
-  decisions    Technical decisions, alternatives, and reasoning
-  errors       Error patterns, root causes, and resolutions
+  decisions     Technical decisions, alternatives, and reasoning
+  errors        Error patterns, root causes, and resolutions
+  agent_usage   How AI agents are used for prototyping and discovery
+  custom        Custom analysis with your own prompt (requires --prompt)
 
 Examples:
   %(prog)s abc123 --type=decisions
   %(prog)s abc123 --type=errors --output=error-analysis.md
+  %(prog)s abc123 --type=custom --prompt="Summarize the main topics discussed"
         """
     )
     parser.add_argument('session_id', nargs='?', help='Session UUID to analyze')
     parser.add_argument(
         '--type',
-        choices=['decisions', 'errors'],
+        choices=['decisions', 'errors', 'agent_usage', 'custom'],
         default='decisions',
         help='Type of analysis to perform (default: decisions)'
+    )
+    parser.add_argument(
+        '--prompt',
+        help='Custom analysis prompt (required when --type=custom)'
     )
     parser.add_argument('--project', help='Analyze all sessions for a project (not yet implemented)')
     parser.add_argument(
@@ -210,6 +230,11 @@ Examples:
         print("Please specify a single session_id for now.", file=sys.stderr)
         sys.exit(1)
 
+    # Validate custom prompt if needed
+    if args.type == 'custom' and not args.prompt:
+        print("❌ Error: --prompt is required when using --type=custom", file=sys.stderr)
+        sys.exit(1)
+
     # Get transcript
     print(f"🔍 Looking up session {args.session_id}...")
     transcript_path = get_session_transcript(args.session_id, args.db)
@@ -220,7 +245,7 @@ Examples:
 
     # Analyze
     try:
-        analysis = analyze_with_gemini(transcript_path, api_key, args.type)
+        analysis = analyze_with_gemini(transcript_path, api_key, args.type, custom_prompt=args.prompt)
 
         # Output
         if args.output:

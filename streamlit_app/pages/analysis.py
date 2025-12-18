@@ -108,6 +108,18 @@ try:
 
     selected_analysis_type = AnalysisType(analysis_type_options[selected_display])
 
+    # Show custom prompt text area if CUSTOM is selected
+    custom_prompt = None
+    if selected_analysis_type == AnalysisType.CUSTOM:
+        st.markdown("### Enter Your Analysis Prompt")
+        st.markdown("_The conversation transcript will be automatically appended to your prompt._")
+        custom_prompt = st.text_area(
+            "Prompt:",
+            height=200,
+            placeholder="Example: Analyze this conversation and identify the main topics discussed, key insights shared, and any action items mentioned.",
+            help="Enter your analysis instructions. The transcript will be automatically added after your prompt."
+        )
+
     st.divider()
 
     # Run analysis
@@ -122,11 +134,17 @@ try:
         save_to_file = st.checkbox("Save result to file", value=False)
 
     if run_button:
+        # Validate custom prompt if CUSTOM type is selected
+        if selected_analysis_type == AnalysisType.CUSTOM:
+            if not custom_prompt or not custom_prompt.strip():
+                st.error("❌ Please enter a custom prompt for analysis.")
+                st.stop()
+
         with st.spinner("Analyzing conversation... This may take a minute."):
             try:
                 # Run analysis
                 result = analysis_service.analyze_session(
-                    selected_session_id, selected_analysis_type
+                    selected_session_id, selected_analysis_type, custom_prompt=custom_prompt
                 )
 
                 st.success("✅ Analysis complete!")
