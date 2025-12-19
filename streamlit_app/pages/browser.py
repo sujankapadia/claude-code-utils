@@ -22,6 +22,29 @@ st.markdown("""
 Browse and explore your Claude Code conversation sessions organized by project.
 """)
 
+# Display quick stats at the top
+try:
+    projects = db_service.get_project_summaries()
+
+    col1, col2, col3, col4 = st.columns(4)
+
+    total_projects = len(projects)
+    total_sessions = sum(p.total_sessions for p in projects)
+    total_messages = sum(p.total_messages for p in projects)
+    total_tools = sum(p.total_tool_uses for p in projects)
+
+    col1.metric("Projects", total_projects)
+    col2.metric("Sessions", total_sessions)
+    col3.metric("Messages", f"{total_messages:,}")
+    col4.metric("Tool Uses", f"{total_tools:,}")
+
+    st.divider()
+
+except Exception as e:
+    st.error(f"Error loading statistics: {e}")
+    st.info("Make sure you've created the database and imported conversations.")
+    st.stop()
+
 # Get all projects
 try:
     projects = db_service.get_project_summaries()

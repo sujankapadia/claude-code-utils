@@ -20,17 +20,17 @@ st.set_page_config(
 )
 
 # Define pages
-home_page = st.Page(
-    "pages/home.py",
-    title="Home",
-    icon="🏠",
-    default=True,
+about_page = st.Page(
+    "pages/about.py",
+    title="About",
+    icon="ℹ️",
 )
 
 browser_page = st.Page(
     "pages/browser.py",
     title="Browse Sessions",
     icon="📚",
+    default=True,
 )
 
 analysis_page = st.Page(
@@ -51,12 +51,19 @@ conversation_page = st.Page(
     icon="💬",
 )
 
+import_data_page = st.Page(
+    "pages/import_data.py",
+    title="Import Data",
+    icon="📥",
+)
+
 # Build navigation
 pg = st.navigation(
     {
-        "Main": [home_page],
-        "Conversations": [browser_page, conversation_page],
+        "Browse": [browser_page, conversation_page],
         "Analysis": [analysis_page, analytics_page],
+        "Data": [import_data_page],
+        "Info": [about_page],
     }
 )
 
