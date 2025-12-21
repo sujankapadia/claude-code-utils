@@ -11,6 +11,7 @@ from typing import Tuple, Optional
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
+import config
 from streamlit_app.services import DatabaseService
 
 # Import the import logic from scripts
@@ -18,6 +19,8 @@ scripts_path = Path(__file__).parent.parent.parent / "scripts"
 sys.path.insert(0, str(scripts_path))
 
 import import_conversations
+from create_database import create_database
+from create_fts_index import create_fts_index
 
 # Initialize service
 db_service = DatabaseService()
@@ -46,11 +49,17 @@ def check_for_new_data() -> Tuple[bool, int, int]:
     Returns:
         Tuple of (has_new_data, new_sessions_count, updated_sessions_count)
     """
-    db_path = Path.home() / 'claude-conversations' / 'conversations.db'
-    source_path = Path.home() / '.claude' / 'projects'
+    db_path = config.DATABASE_PATH
+    source_path = config.CLAUDE_CODE_PROJECTS_DIR
 
-    if not db_path.exists() or not source_path.exists():
+    if not source_path.exists():
         return (False, 0, 0)
+
+    # If database doesn't exist, any JSONL files are "new"
+    if not db_path.exists():
+        # Quick count of JSONL files
+        jsonl_count = sum(1 for _ in source_path.rglob('*.jsonl'))
+        return (jsonl_count > 0, jsonl_count, 0)
 
     conn = sqlite3.connect(str(db_path))
     cursor = conn.cursor()
@@ -118,13 +127,18 @@ def run_import() -> Tuple[int, int, int, int]:
     Returns:
         Tuple of (projects, sessions, messages, tool_uses) imported
     """
-    db_path = Path.home() / 'claude-conversations' / 'conversations.db'
-    source_path = Path.home() / '.claude' / 'projects'
+    db_path = config.DATABASE_PATH
+    source_path = config.CLAUDE_CODE_PROJECTS_DIR
 
+    # Auto-create database if it doesn't exist
     if not db_path.exists():
-        st.error(f"❌ Database not found: {db_path}")
-        st.info("Run `python3 scripts/create_database.py` first to create the database.")
-        return (0, 0, 0, 0)
+        st.info(f"📊 Creating new database at: {db_path}")
+        try:
+            create_database(str(db_path))
+            st.success("✅ Database created successfully")
+        except Exception as e:
+            st.error(f"❌ Failed to create database: {e}")
+            return (0, 0, 0, 0)
 
     if not source_path.exists():
         st.error(f"❌ Source directory not found: {source_path}")
@@ -173,10 +187,20 @@ def run_import() -> Tuple[int, int, int, int]:
 
         # Commit changes
         conn.commit()
+        conn.close()
 
         # Clear progress indicators
         progress_bar.empty()
         status_text.empty()
+
+        # Rebuild FTS index if any data was imported
+        if total_messages > 0:
+            status_text.text("🔍 Rebuilding search index...")
+            try:
+                create_fts_index(str(db_path))
+                status_text.empty()
+            except Exception as e:
+                st.warning(f"⚠️ Failed to rebuild search index: {e}")
 
         return (total_projects, total_sessions, total_messages, total_tool_uses)
 
@@ -185,7 +209,8 @@ def run_import() -> Tuple[int, int, int, int]:
         conn.rollback()
         return (0, 0, 0, 0)
     finally:
-        conn.close()
+        if conn:
+            conn.close()
 
 
 # Check for new data

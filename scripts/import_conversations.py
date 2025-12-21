@@ -419,10 +419,17 @@ def main():
     db_path = Path(args.db)
     source_path = Path(args.source)
 
+    # Auto-create database if it doesn't exist
     if not db_path.exists():
-        logger.error(f"❌ Database not found: {db_path}")
-        logger.error("   Run create_database.py first to create the database.")
-        sys.exit(1)
+        logger.info(f"📊 Database not found - creating new database at: {db_path}")
+        try:
+            # Import create_database module
+            from create_database import create_database, SCHEMA_SQL
+            create_database(str(db_path))
+            logger.info("✅ Database created successfully\n")
+        except Exception as e:
+            logger.error(f"❌ Failed to create database: {e}")
+            sys.exit(1)
 
     if not source_path.exists():
         logger.error(f"❌ Source directory not found: {source_path}")
@@ -488,6 +495,18 @@ def main():
         logger.info(f"🔧 Tool uses imported:  {total_tool_uses}")
         logger.info("="*60)
 
+        # Rebuild FTS index if any data was imported
+        if total_messages > 0:
+            logger.info("\n🔍 Rebuilding search index...")
+            try:
+                from create_fts_index import create_fts_index
+                conn.close()  # Close connection before FTS rebuild
+                create_fts_index(str(db_path))
+                logger.info("✅ Search index updated")
+            except Exception as e:
+                logger.warning(f"⚠️  Failed to rebuild search index: {e}")
+                logger.info("   Run: python3 scripts/create_fts_index.py")
+
         # Show sample query
         if total_sessions > 0:
             logger.info("\nTo view imported data:")
@@ -498,7 +517,8 @@ def main():
         conn.rollback()
         sys.exit(1)
     finally:
-        conn.close()
+        if conn:
+            conn.close()
 
 
 if __name__ == "__main__":

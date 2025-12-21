@@ -12,6 +12,10 @@ import sqlite3
 from pathlib import Path
 import sys
 
+# Add parent directory to path for config import
+sys.path.insert(0, str(Path(__file__).parent.parent))
+import config
+
 
 FTS_SCHEMA = """
 -- ============================================================================
@@ -149,14 +153,13 @@ def create_fts_index(db_path: str):
 
 def main():
     """Main entry point."""
-    # Default database path
-    home = Path.home()
-    db_path = home / "claude-conversations" / "conversations.db"
+    # Use config for database path
+    db_path = config.DATABASE_PATH
 
     # Check if database exists
     if not db_path.exists():
         print(f"❌ Database not found: {db_path}")
-        print("   Run import_conversations.py first to create the database.")
+        print("   Run import_conversations.py first to create and populate the database.")
         sys.exit(1)
 
     # Create FTS index
