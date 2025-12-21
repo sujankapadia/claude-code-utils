@@ -1,78 +1,88 @@
-# claude-code-utils
+# Claude Code Analytics
 
-A collection of utilities and hooks for [Claude Code](https://claude.com/claude-code) that automatically exports and archives your conversation transcripts.
+A comprehensive analytics platform for [Claude Code](https://claude.com/claude-code) that automatically captures, archives, and analyzes your AI development conversations. Features an interactive dashboard, powerful search, and AI-powered insights across all your sessions.
 
 ## Overview
 
-The main feature of this toolkit is automatic conversation archiving using Claude Code's SessionEnd hooks. When a Claude Code session ends, your conversation is automatically:
-- Exported from the internal JSONL transcript format
-- Converted to a human-readable text format
-- Organized by project in `~/claude-conversations/`
-- Saved in both raw JSONL and formatted text versions
+Claude Code Analytics transforms your AI development workflow into actionable insights. It automatically captures every conversation, stores them in a searchable database, and provides an interactive dashboard to explore your development patterns, tool usage, and decision-making process.
 
-This makes it easy to review past conversations, track your development process, and maintain a searchable archive of your work with Claude.
+**How it works:**
+1. **Capture** - SessionEnd hooks automatically export conversations when you exit Claude Code
+2. **Store** - Conversations are imported into a SQLite database with full-text search
+3. **Analyze** - Interactive Streamlit dashboard provides search, analytics, and AI-powered insights
 
-## Features
+## Key Features
 
-### Core Features
-- **Automatic export on session end** - No manual intervention required
-- **Project-based organization** - Conversations are organized by the project directory where they occurred
-- **Dual format storage** - Both raw JSONL (for programmatic access) and pretty-printed text (for human reading)
-- **Rich formatting** - The text format includes:
-  - Clear visual separation between user and Claude messages
-  - Tool commands (e.g., `$ git push`)
-  - Tool results with actual output
-  - Timestamps
-  - Proper handling of multiline content
-- **Session resumption handling** - Correctly identifies the latest transcript even when resuming old sessions
-- **Debug logging** - Troubleshoot issues with `~/.claude/export-debug.log`
+### 📊 Interactive Dashboard
 
-### Analytics & Database Features
-- **SQLite database** - Normalized schema with projects, sessions, messages, and tool uses
-- **Incremental import** - Efficiently updates database with only new messages from active sessions
-- **Message-level tool tracking** - Each tool use is linked to its message via `message_index`
-- **Full-text search** - FTS5 search index for fast content search across all conversations
-- **Token tracking** - Comprehensive token usage statistics including cache metrics
-- **Tool analytics** - Track tool usage patterns, error rates, and performance
-- **MCP server integration** - Analyze MCP server usage and patterns
+The Streamlit-based dashboard is your primary interface for exploring conversations:
 
-### AI-Powered Analysis
-- **Multiple LLM providers** - Use OpenRouter (300+ models) or Google Gemini directly
-- **Curated model selection** - Quick-select from 13 newest premium models (2025):
-  - **Budget tier**: Qwen3, Llama 4 Scout, Mistral Small ($0.06-$0.10 per 1M tokens)
-  - **Balanced tier**: DeepSeek V3.2, Gemini 3 Flash, Claude Haiku 4.5, GPT-5.1/5.2 ($0.26-$1.75)
-  - **Premium tier**: Gemini 3 Pro, Claude Sonnet 4.5, Grok 4, Claude Opus 4.5 ($2-$5)
-- **Browse 300+ models** - Access full OpenRouter catalog with pricing and context info
-- **Multiple analysis types**:
-  - **Technical Decisions**: Extract decisions, alternatives considered, and reasoning
-  - **Error Patterns**: Identify error patterns, root causes, and resolutions
-  - **AI Agent Usage**: Analyze how developers use AI agents for prototyping, experimentation, and discovery
-  - **Custom Analysis**: Enter your own analysis prompts
-- **Templated prompts** - Jinja2-based prompt management for easy customization
-- **Export results** - Save analysis as markdown files
-- **Configurable temperature** - Control analysis determinism (default: 0.1)
-
-### 🎨 Streamlit Dashboard (NEW!)
-- **Interactive Web UI** - Beautiful dashboard for exploring your conversations
-- **Session Browser** - View and filter all your conversation sessions
-- **Terminal-Style Conversation Viewer** - Clean, minimal interface mimicking Claude Code sessions:
+- **Session Browser** - View, filter, and navigate all your Claude Code sessions with pagination support
+- **Conversation Viewer** - Terminal-style interface that faithfully recreates your sessions:
   - Inline tool calls and results
-  - Message-level tool use tracking with `message_index`
-  - Filtering by role and content search
-  - Optional token usage display
-  - Auto-hide empty messages
-- **Analysis Runner** - Run AI-powered analysis directly from the UI
-- **Analytics Dashboard** - Interactive charts and statistics:
-  - Token usage trends over time
-  - Tool usage distribution
-  - Daily activity metrics
-  - Project statistics
+  - Role-based filtering (user/assistant)
+  - Content search within sessions
+  - Token usage display
+  - Deep linking to specific messages from search results
+- **Analytics Dashboard** - Visual insights into your development patterns:
+  - Messages and token usage over time
+  - Tool usage distribution and error rates
+  - Project activity metrics
+  - Daily activity trends
+- **Full-Text Search** - FTS5-powered search across all messages, tool inputs, and tool results:
+  - Scope filtering (messages, tool inputs/results)
+  - Project and date range filters
+  - Highlighted search results with context
+  - Direct navigation to matching messages
+  - MCP tool usage analysis
+- **AI-Powered Analysis** - Run sophisticated analysis on any session:
+  - Technical decisions extraction
+  - Error pattern analysis
+  - AI agent usage patterns
+  - Custom analysis with your own prompts
+  - 300+ model selection via OpenRouter or Gemini
 
-## Installation
+### 🔍 Search & Discovery
 
-### Quick Install (Recommended)
+- **Full-text search** - Lightning-fast FTS5 search across millions of tokens
+- **Deep linking** - Search results link directly to specific messages in conversations
+- **Advanced filtering** - Filter by project, date range, role, tool name
+- **MCP tool tracking** - Dedicated analytics for MCP server usage
+- **Message-level precision** - Every tool use is linked to its exact message
 
-Clone the repository and run the installation script:
+### 💾 Automatic Archiving
+
+- **Hook-based capture** - Conversations automatically export on session end
+- **Dual-format storage** - Raw JSONL for programmatic access, formatted text for reading
+- **Project organization** - Conversations organized by the project directory they occurred in
+- **Incremental imports** - Database updates efficiently with only new content
+- **Session resumption** - Correctly handles resumed sessions and updates
+
+### 🤖 AI-Powered Analysis
+
+- **300+ models** - Access entire OpenRouter catalog or use Google Gemini directly
+- **Curated selection** - Quick-select from 13 newest premium models (2025):
+  - **Budget**: Qwen3, Llama 4 Scout, Mistral Small ($0.06-$0.10/1M tokens)
+  - **Balanced**: DeepSeek V3.2, Gemini 3 Flash, Claude Haiku 4.5 ($0.26-$1.75/1M tokens)
+  - **Premium**: Gemini 3 Pro, Claude Sonnet 4.5, Grok 4, Claude Opus 4.5 ($2-$5/1M tokens)
+- **Pre-built analysis types**:
+  - Technical Decisions - Extract decisions, alternatives, and reasoning
+  - Error Patterns - Identify recurring issues, root causes, resolutions
+  - AI Agent Usage - Understand how you use AI for prototyping and discovery
+  - Custom - Write your own analysis prompts
+- **Templated prompts** - Jinja2-based templates for easy customization
+- **Export results** - Save analysis as markdown files
+
+### 📈 Comprehensive Analytics
+
+- **Token tracking** - Input, output, and cache metrics (creation, read, 5m, 1h)
+- **Tool usage stats** - Track which tools you use most, error rates, session distribution
+- **Daily trends** - Message volume, token usage, and activity over time
+- **Project insights** - Compare activity levels across different projects
+
+## Quick Start
+
+### 1. Install
 
 ```bash
 git clone https://github.com/yourusername/claude-code-utils.git
@@ -80,212 +90,221 @@ cd claude-code-utils
 ./install.sh
 ```
 
-The install script will:
-- Create necessary directories (`~/.claude/scripts/`, `~/claude-conversations/`)
-- Copy scripts to `~/.claude/scripts/`
-- Set executable permissions
-- Update `~/.claude/settings.json` with the SessionEnd hook (backs up existing settings)
+The installer sets up hooks, creates directories, and configures Claude Code to automatically export conversations.
 
-**Note:** The script uses `jq` for JSON manipulation if available. If not installed, it will provide manual configuration instructions. Install with: `brew install jq` (macOS) or `apt-get install jq` (Linux).
-
-### Manual Installation
-
-If you prefer to install manually:
-
-#### 1. Create the scripts directory
+### 2. Create Database
 
 ```bash
-mkdir -p ~/.claude/scripts
-```
-
-#### 2. Copy the scripts
-
-Copy both `export-conversation.sh` and `pretty-print-transcript.py` to `~/.claude/scripts/`:
-
-```bash
-cp hooks/export-conversation.sh ~/.claude/scripts/
-cp scripts/pretty-print-transcript.py ~/.claude/scripts/
-```
-
-#### 3. Make scripts executable
-
-```bash
-chmod +x ~/.claude/scripts/export-conversation.sh
-chmod +x ~/.claude/scripts/pretty-print-transcript.py
-```
-
-#### 4. Configure the SessionEnd hook
-
-Add the following to your `~/.claude/settings.json`:
-
-```json
-{
-  "hooks": {
-    "SessionEnd": [
-      {
-        "matcher": "",
-        "hooks": [
-          {
-            "type": "command",
-            "command": "bash ~/.claude/scripts/export-conversation.sh"
-          }
-        ]
-      }
-    ]
-  }
-}
-```
-
-If you already have other hooks configured, just add the `SessionEnd` entry to your existing `hooks` object.
-
-#### 5. Create the conversations directory (optional)
-
-The script will create this automatically, but you can create it manually if you prefer:
-
-```bash
-mkdir -p ~/claude-conversations
-```
-
-## Usage
-
-### 1. Automatic Export
-
-Once configured, conversations are automatically exported when you exit Claude Code. You don't need to do anything!
-
-Your conversations will be saved to:
-```
-~/claude-conversations/
-  └── project-name/
-      ├── session-20250113-143022.jsonl
-      ├── session-20250113-143022.txt
-      ├── session-20250113-151430.jsonl
-      └── session-20250113-151430.txt
-```
-
-### 2. Import to Database
-
-Create and populate the SQLite database:
-
-```bash
-# Create the database schema
+# Create database schema
 python3 scripts/create_database.py
 
-# Import all conversations (initial import)
+# Import existing conversations
 python3 scripts/import_conversations.py
 
-# Create full-text search index (optional)
+# Create search index
 python3 scripts/create_fts_index.py
 ```
 
-The database will be created at `~/claude-conversations/conversations.db`.
-
-**Incremental Import:** The import script supports incremental updates! Run it anytime to import only new messages from active or completed sessions. It automatically:
-- Detects existing sessions in the database
-- Imports only messages newer than the last imported message
-- Updates session metadata (end_time, message counts)
-- Preserves all existing data with zero duplicates
-- Works efficiently even while sessions are still active
-
-### 3. Launch the Dashboard
-
-Start the Streamlit dashboard:
+### 3. Launch Dashboard
 
 ```bash
-# Using the launch script
 ./run_dashboard.sh
-
-# Or directly
-streamlit run streamlit_app/app.py
 ```
 
-The dashboard will open at `http://localhost:8501`.
+The dashboard opens at `http://localhost:8501`. Start exploring your conversations!
 
-### 4. Run Analysis (CLI)
+### 4. (Optional) Configure AI Analysis
 
-#### Setup API Key
+To use AI-powered analysis features:
 
-**Option 1: OpenRouter (Recommended)** - Access 300+ models
 ```bash
+# Option 1: OpenRouter (300+ models)
 export OPENROUTER_API_KEY="sk-or-your-key-here"
-```
-Get your key from [OpenRouter](https://openrouter.ai/keys)
 
-**Option 2: Google Gemini (Direct)**
-```bash
+# Option 2: Google Gemini (direct)
 export GOOGLE_API_KEY="your-api-key-here"
 ```
-Get your key from [Google AI Studio](https://aistudio.google.com/app/apikey)
 
-#### Run Analysis
+Get API keys from [OpenRouter](https://openrouter.ai/keys) or [Google AI Studio](https://aistudio.google.com/app/apikey).
 
-```bash
-# Using default model (DeepSeek V3.2)
-python3 scripts/analyze_session.py <session-id> --type=decisions
+## Using the Dashboard
 
-# Specify a model
-python3 scripts/analyze_session.py <session-id> --type=errors --model=anthropic/claude-sonnet-4.5
+### Browse Sessions
 
-# Analyze AI agent usage
-python3 scripts/analyze_session.py <session-id> --type=agent_usage --model=openai/gpt-5.2-chat
+The **Browse Sessions** page shows all your conversations:
+- Filter by project, date range, or minimum message count
+- Sort by date or activity level
+- Pagination for large conversation histories
+- Click any session to view full conversation
 
-# Custom analysis with your own prompt
-python3 scripts/analyze_session.py <session-id> --type=custom --prompt="Summarize main topics discussed"
+### Search Conversations
 
-# Save to file
-python3 scripts/analyze_session.py <session-id> --type=decisions --output=analysis.md
-```
+The **Search** page provides powerful full-text search:
+- Search across messages, tool inputs, or tool results
+- Filter by project, date range, or specific tools
+- View MCP tool usage statistics
+- Click search results to jump directly to matching messages in context
 
-**Popular Models:**
-- `deepseek/deepseek-v3.2` - Default, best balance ($0.26/1M)
-- `anthropic/claude-sonnet-4.5` - Highest quality ($3.00/1M)
-- `openai/gpt-5.2-chat` - Latest GPT ($1.75/1M)
-- `google/gemini-3-flash-preview` - 1M context ($0.50/1M)
-- `qwen/qwen3-vl-8b-instruct` - Cheapest ($0.06/1M)
+### View Analytics
 
-### 5. Search Conversations
+The **Analytics Dashboard** provides visual insights:
+- Tool usage distribution (top 10 tools by usage)
+- Daily activity trends (messages, tokens, sessions)
+- Token usage over time (input vs output)
+- Project statistics (sorted by message volume)
 
-Use the FTS5 search (requires running `create_fts_index.py` first):
+### Run AI Analysis
+
+The **AI Analysis** page lets you analyze sessions with LLMs:
+1. Select a session from the dropdown
+2. Choose analysis type or write custom prompt
+3. Select model (browse 300+ options or pick from curated list)
+4. Adjust temperature (default: 0.1 for deterministic analysis)
+5. Run analysis and optionally export to markdown
+
+## Advanced Usage
+
+### CLI Tools
+
+#### Search Conversations
 
 ```bash
 python3 scripts/search_fts.py "error handling"
 ```
 
+#### Run Analysis from CLI
+
+```bash
+# Analyze technical decisions
+python3 scripts/analyze_session.py <session-id> --type=decisions
+
+# Specify model and save output
+python3 scripts/analyze_session.py <session-id> \
+  --type=errors \
+  --model=anthropic/claude-sonnet-4.5 \
+  --output=analysis.md
+
+# Custom analysis
+python3 scripts/analyze_session.py <session-id> \
+  --type=custom \
+  --prompt="Summarize key technical insights"
+```
+
+**Popular models:**
+- `deepseek/deepseek-v3.2` - Best balance (default, $0.26/1M)
+- `anthropic/claude-sonnet-4.5` - Highest quality ($3.00/1M)
+- `openai/gpt-5.2-chat` - Latest GPT ($1.75/1M)
+- `google/gemini-3-flash-preview` - 1M context window ($0.50/1M)
+
+### Incremental Database Updates
+
+Run the import script anytime to update the database with new conversations:
+
+```bash
+python3 scripts/import_conversations.py
+```
+
+The script automatically:
+- Detects existing sessions
+- Imports only new messages
+- Updates session metadata (end times, message counts)
+- Preserves all existing data with zero duplicates
+- Works efficiently on active or completed sessions
+
 ### Manual Export
 
-You can also manually convert existing JSONL transcripts to readable text:
+Convert JSONL transcripts to readable text format:
 
 ```bash
 ~/.claude/scripts/pretty-print-transcript.py /path/to/transcript.jsonl output.txt
-```
 
-Or use stdin/stdout:
-
-```bash
+# Or via stdin/stdout
 cat transcript.jsonl | ~/.claude/scripts/pretty-print-transcript.py > output.txt
 ```
 
-## File Structure
+### Custom Analysis Prompts
 
-### `export-conversation.sh`
+Create custom analysis templates in `prompts/`:
 
-The main hook script that:
-- Receives the current working directory and transcript path from Claude Code
-- Finds the most recent transcript file (handling session resumption)
-- Creates the project-specific directory structure
-- Copies the JSONL file
-- Calls the pretty-print script to create the readable version
-- Logs debug information
+1. Create a new `.md` file with your Jinja2 template
+2. Add metadata to `prompts/metadata.yaml`
+3. Use from dashboard or CLI with `--type=your_template_name`
 
-### `pretty-print-transcript.py`
+See `prompts/README.md` for detailed instructions.
 
-Python script that converts JSONL transcripts to readable text:
-- Parses the Claude Code JSONL format
-- Formats messages with clear visual separation
-- Displays tool usage (commands and results)
-- Handles both string and structured object tool results
-- Adds timestamps and proper text wrapping
+## How It Works
 
-### Output Format Example
+### Architecture
+
+```
+Claude Code Session
+       ↓
+SessionEnd Hook (export-conversation.sh)
+       ↓
+~/claude-conversations/
+  ├── project-name/
+  │   ├── session-YYYYMMDD-HHMMSS.jsonl  (raw data)
+  │   └── session-YYYYMMDD-HHMMSS.txt    (readable format)
+       ↓
+Import Script (import_conversations.py)
+       ↓
+SQLite Database (conversations.db)
+  ├── projects
+  ├── sessions
+  ├── messages
+  ├── tool_uses
+  └── fts_messages (full-text search index)
+       ↓
+Streamlit Dashboard
+  ├── Browse & filter sessions
+  ├── Search conversations
+  ├── View analytics
+  └── Run AI analysis
+```
+
+### Hook System
+
+The `export-conversation.sh` hook runs automatically when you exit Claude Code:
+
+1. Receives current working directory and transcript path
+2. Finds the most recent transcript (handles session resumption)
+3. Creates project-specific directory structure
+4. Copies JSONL file with timestamp
+5. Generates human-readable text version
+6. Logs to `~/.claude/export-debug.log`
+
+### Database Schema
+
+The SQLite database uses a normalized schema:
+
+- **projects** - Unique project directories
+- **sessions** - Conversation sessions with metadata
+- **messages** - Individual messages with token tracking
+- **tool_uses** - Tool calls linked to messages via `message_index`
+- **fts_messages** - FTS5 full-text search index
+- **Views** - Pre-aggregated statistics for performance
+
+See `docs/database.md` for complete schema documentation.
+
+### File Organization
+
+Exported conversations are organized by project:
+
+```
+~/claude-conversations/
+├── project-name-1/
+│   ├── session-20250113-143022.jsonl
+│   ├── session-20250113-143022.txt
+│   ├── session-20250113-151430.jsonl
+│   └── session-20250113-151430.txt
+├── project-name-2/
+│   └── session-20250114-091500.jsonl
+└── conversations.db
+```
+
+### Readable Text Format
+
+The generated `.txt` files provide a clean, readable format:
 
 ```
 ═══════════════════════════════════════════════════════════════
@@ -310,96 +329,185 @@ $ Read file_path=/path/to/auth.js
 5  }
 ```
 
-## Troubleshooting
+## Installation Details
 
-### Debug Log
+### Automated Installation (Recommended)
 
-If exports aren't working, check the debug log:
+The `install.sh` script handles everything:
 
+```bash
+./install.sh
+```
+
+It will:
+- Create `~/.claude/scripts/` and `~/claude-conversations/` directories
+- Copy hook and formatting scripts
+- Set executable permissions
+- Update `~/.claude/settings.json` with SessionEnd hook (backs up existing settings)
+
+**Requirements:** The script uses `jq` for JSON manipulation. Install with:
+- macOS: `brew install jq`
+- Linux: `apt-get install jq`
+
+If `jq` is not available, the script provides manual configuration instructions.
+
+### Manual Installation
+
+If you prefer manual setup:
+
+#### 1. Create directories
+
+```bash
+mkdir -p ~/.claude/scripts
+mkdir -p ~/claude-conversations
+```
+
+#### 2. Copy scripts
+
+```bash
+cp hooks/export-conversation.sh ~/.claude/scripts/
+cp scripts/pretty-print-transcript.py ~/.claude/scripts/
+chmod +x ~/.claude/scripts/export-conversation.sh
+chmod +x ~/.claude/scripts/pretty-print-transcript.py
+```
+
+#### 3. Configure hook
+
+Add to `~/.claude/settings.json`:
+
+```json
+{
+  "hooks": {
+    "SessionEnd": [
+      {
+        "matcher": "",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash ~/.claude/scripts/export-conversation.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+If you have existing hooks, merge the `SessionEnd` entry into your existing `hooks` object.
+
+#### 4. Install Python dependencies
+
+```bash
+pip install streamlit pandas altair google-generativeai openai jinja2 pyyaml python-dotenv
+```
+
+### Troubleshooting
+
+#### Conversations not exporting
+
+Check the debug log:
 ```bash
 cat ~/.claude/export-debug.log
 ```
 
-The log includes:
-- Hook execution timestamps
-- Paths being processed
-- File operations
-- Any errors encountered
+Common issues:
+- Hook not configured in `~/.claude/settings.json`
+- Scripts not executable (`chmod +x`)
+- Incorrect paths in settings
 
-### Common Issues
+#### Permission errors
 
-**Conversations not exporting**
-- Verify the hook is configured in `~/.claude/settings.json`
-- Check that scripts are executable (`chmod +x`)
-- Review `~/.claude/export-debug.log` for errors
+Ensure directories are writable:
+```bash
+chmod 755 ~/claude-conversations
+chmod 755 ~/.claude/scripts
+```
 
-**Permission errors**
-- Ensure `~/claude-conversations/` is writable
-- Verify script files have execute permissions
+#### Import errors
 
-**Missing Python or bash**
-- The scripts require Python 3 and bash
-- On macOS/Linux these are typically pre-installed
-- Run `python3 --version` and `bash --version` to verify
+If database import fails:
+- Verify JSONL files exist in `~/claude-conversations/`
+- Check file permissions
+- Ensure Python 3.7+ is installed
+- Run with verbose output: `python3 scripts/import_conversations.py -v`
+
+#### Dashboard not launching
+
+- Install dependencies: `pip install streamlit pandas altair`
+- Check port 8501 is available
+- Try alternate port: `streamlit run streamlit_app/app.py --server.port=8502`
 
 ## Project Structure
 
 ```
 claude-code-utils/
-├── hooks/                          # Claude Code hooks
-│   └── export-conversation.sh      # SessionEnd hook for auto-export
-├── scripts/                        # Python scripts
-│   ├── pretty-print-transcript.py  # Convert JSONL to readable text
-│   ├── create_database.py          # Create SQLite database
-│   ├── import_conversations.py     # Import conversations to database
-│   ├── create_fts_index.py         # Create full-text search index
-│   ├── search_fts.py               # Search conversations
-│   └── analyze_session.py          # CLI for running analysis
-├── streamlit_app/                  # Streamlit dashboard
-│   ├── app.py                      # Main entry point
-│   ├── models/                     # Pydantic data models
-│   ├── services/                   # Business logic layer
-│   └── pages/                      # UI pages
-├── prompts/                        # Analysis prompt templates
-│   ├── metadata.yaml               # Analysis type metadata
-│   ├── decisions.md                # Technical decisions prompt
-│   ├── errors.md                   # Error patterns prompt
-│   └── agent_usage.md              # AI agent usage analysis prompt
-├── install.sh                      # Installation script
-└── run_dashboard.sh                # Launch dashboard script
+├── hooks/
+│   └── export-conversation.sh       # SessionEnd hook for auto-export
+├── scripts/
+│   ├── pretty-print-transcript.py   # Convert JSONL to readable text
+│   ├── create_database.py           # Create SQLite database schema
+│   ├── import_conversations.py      # Import conversations to database
+│   ├── create_fts_index.py          # Create full-text search index
+│   ├── search_fts.py                # CLI search tool
+│   └── analyze_session.py           # CLI analysis tool
+├── streamlit_app/
+│   ├── app.py                       # Dashboard entry point
+│   ├── models/                      # Pydantic data models
+│   │   └── __init__.py
+│   ├── services/                    # Business logic layer
+│   │   └── database_service.py
+│   └── pages/                       # Dashboard pages
+│       ├── browser.py               # Session browser
+│       ├── conversation.py          # Conversation viewer
+│       ├── search.py                # Full-text search
+│       ├── analytics.py             # Analytics dashboard
+│       └── ai_analysis.py           # AI-powered analysis
+├── prompts/                         # Analysis prompt templates
+│   ├── metadata.yaml                # Analysis type definitions
+│   ├── decisions.md                 # Technical decisions prompt
+│   ├── errors.md                    # Error patterns prompt
+│   └── agent_usage.md               # AI agent usage analysis
+├── docs/                            # Documentation
+│   ├── database.md                  # Database schema details
+│   ├── search-feature.md            # Search implementation
+│   └── deep-linking-implementation.md
+├── install.sh                       # Automated installer
+├── run_dashboard.sh                 # Dashboard launcher
+└── README.md                        # This file
 ```
 
 ## Documentation
 
-- **Main README** (this file): Overview and getting started
-- **Database Documentation**: See `docs/database.md` for schema details
-- **Streamlit App**: See `streamlit_app/README.md` for dashboard documentation
-- **Prompts**: See `prompts/README.md` for customizing analysis prompts
+- **[Database Schema](docs/database.md)** - Complete schema documentation
+- **[Search Feature](docs/search-feature.md)** - Full-text search implementation
+- **[Deep Linking](docs/deep-linking-implementation.md)** - Technical details on search-to-conversation navigation
+- **[Custom Prompts](prompts/README.md)** - How to create custom analysis prompts
 
-## Future Ideas
+## Future Roadmap
 
-- **PII/sensitive data detection** - Identify potential PII in conversations
-- **Vector embeddings** - Add semantic search across all conversations
-- **Export formats** - Support for additional export formats (HTML, PDF)
-- **Cloud sync** - Optional backup to cloud storage
-- **Comparative analysis** - Compare patterns across multiple sessions
+- **Vector embeddings** - Semantic search across conversations
+- **PII detection** - Identify potential sensitive data
+- **Cost tracking** - Monitor LLM API costs per analysis
+- **Model comparison** - A/B test analysis quality across models
+- **Export formats** - HTML, PDF conversation exports
 - **Real-time analysis** - Analyze conversations as they happen
-- **Cost tracking** - Track LLM API costs per analysis
-- **Model comparison** - Compare analysis quality across different models
+- **Cloud sync** - Optional backup to cloud storage
 
 ## Contributing
 
 Contributions are welcome! Feel free to:
-- Report bugs or issues
-- Suggest new features
+- Report bugs or request features via GitHub Issues
 - Submit pull requests
-- Share your own utilities and hooks
+- Share your custom analysis prompts
+- Suggest new analytics visualizations
 
 ## License
 
-MIT License - feel free to use and modify as needed.
+MIT License - Use and modify freely.
 
-## Related Resources
+## Resources
 
 - [Claude Code Documentation](https://docs.claude.com/en/docs/claude-code)
 - [Claude Code Hooks Guide](https://docs.claude.com/en/docs/claude-code/hooks)
+- [OpenRouter API](https://openrouter.ai/)
+- [Google Gemini API](https://ai.google.dev/)
