@@ -54,7 +54,7 @@ class DatabaseService:
         """Get project summaries with aggregated statistics."""
         conn = self._get_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT * FROM project_summary ORDER BY total_sessions DESC")
+        cursor.execute("SELECT * FROM project_summary ORDER BY total_messages DESC")
         rows = cursor.fetchall()
         conn.close()
         return [ProjectSummary(**dict(row)) for row in rows]

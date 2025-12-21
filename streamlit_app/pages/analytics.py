@@ -160,6 +160,9 @@ try:
     else:
         projects_df = pd.DataFrame([p.model_dump() for p in projects])
 
+        # Ensure proper sorting by total_messages
+        projects_df = projects_df.sort_values('total_messages', ascending=False)
+
         st.dataframe(
             projects_df,
             column_config={
@@ -176,17 +179,17 @@ try:
         )
 
         # Project distribution chart
-        st.markdown("#### Sessions by Project")
+        st.markdown("#### Messages by Project")
 
-        project_chart_data = projects_df[["project_name", "total_sessions"]].head(10)
+        project_chart_data = projects_df[["project_name", "total_messages"]].head(10)
 
         project_chart = (
             alt.Chart(project_chart_data)
             .mark_arc(innerRadius=50)
             .encode(
-                theta=alt.Theta("total_sessions:Q"),
+                theta=alt.Theta("total_messages:Q"),
                 color=alt.Color("project_name:N", legend=alt.Legend(title="Project")),
-                tooltip=["project_name", "total_sessions"],
+                tooltip=["project_name", "total_messages"],
             )
             .properties(height=400)
         )
