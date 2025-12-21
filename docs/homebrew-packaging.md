@@ -16,16 +16,41 @@ Package Claude Code Analytics as a Homebrew formula to enable simple installatio
 
 According to Homebrew guidelines, all formulas must have:
 
-1. **Homepage**: An HTTPS homepage is required (we don't accept formulas without one!)
-2. **License**: Must use SPDX License List identifier or be public domain
-3. **Description**: Clear, concise description of what the tool does
-4. **Meaningful Tests**: Tests must verify actual functionality, not just `--version` or `--help`
+1. **Stable Tagged Release**: Must have a version tag (e.g., `v1.0.0`) - Homebrew doesn't accept untagged software
+2. **Tarball URL**: Use GitHub release tarball, not raw repository URL
+3. **SHA256 Checksum**: Required for security verification
+4. **Homepage**: An HTTPS homepage is required (GitHub repo URL is acceptable)
+5. **License**: Must use SPDX License List identifier or be public domain
+6. **Description**: Clear, concise description of what the tool does
+7. **Meaningful Tests**: Tests must verify actual functionality, not just `--version` or `--help`
+
+### Source URL Format
+
+❌ **INCORRECT** - Don't use raw repository URL:
+```ruby
+url "https://github.com/sujankapadia/claude-code-utils"
+```
+
+✅ **CORRECT** - Use GitHub release tarball URL:
+```ruby
+url "https://github.com/sujankapadia/claude-code-utils/archive/refs/tags/v1.0.0.tar.gz"
+sha256 "abc123..."  # Generated from the tarball
+```
+
+**Why**: Homebrew requires stable, versioned sources with checksums. GitHub automatically creates tarballs for all tags at the `/archive/refs/tags/VERSION.tar.gz` endpoint.
 
 ### Repository Requirements for Taps
 
 - Repository name must be `homebrew-something` (the prefix is mandatory)
 - Users can reference it as `username/something` (prefix omitted in commands)
 - Repository should contain `Formula/` directory with formula files
+
+### For Homebrew Core Submission (Optional)
+
+If submitting to the main Homebrew repository (not required for personal tap):
+- Need 30+ forks, 30+ watchers, OR 75+ stars on GitHub
+- Must meet all quality and stability requirements
+- PR review process can take weeks
 
 ## Installation Experience
 
@@ -61,8 +86,8 @@ class ClaudeCodeAnalytics < Formula
 
   desc "Analytics platform for Claude Code conversations"
   homepage "https://github.com/sujankapadia/claude-code-utils"
-  url "https://github.com/sujankapadia/claude-code-utils/archive/v1.0.0.tar.gz"
-  sha256 "..." # Will be generated from release tarball
+  url "https://github.com/sujankapadia/claude-code-utils/archive/refs/tags/v1.0.0.tar.gz"
+  sha256 "..." # Generate with: curl -L <url> | shasum -a 256
   license "MIT"
 
   depends_on "python@3.11"
@@ -196,18 +221,27 @@ end
 
 ### 1. Prepare Repository for Release
 
-- [ ] Tag a release version (e.g., `v1.0.0`)
-- [ ] Create GitHub release with tarball
-- [ ] Generate SHA256 checksum for tarball
+- [ ] Create and push a version tag
+- [ ] Verify GitHub automatically created the release tarball
+- [ ] Generate SHA256 checksum from the tarball
 
 ```bash
-# Create release
+# Step 1: Create and push version tag
 git tag -a v1.0.0 -m "Release version 1.0.0"
 git push origin v1.0.0
 
-# Generate checksum
-curl -L https://github.com/sujankapadia/claude-code-utils/archive/v1.0.0.tar.gz | shasum -a 256
+# Step 2: GitHub automatically creates tarball at:
+# https://github.com/sujankapadia/claude-code-utils/archive/refs/tags/v1.0.0.tar.gz
+
+# Step 3: Generate SHA256 checksum
+curl -L https://github.com/sujankapadia/claude-code-utils/archive/refs/tags/v1.0.0.tar.gz | shasum -a 256
+
+# Example output:
+# abc123def456...  -
+# Copy this hash for use in the formula
 ```
+
+**Important**: Use the `/archive/refs/tags/VERSION.tar.gz` format, not the short `/archive/VERSION.tar.gz` format, as it's more explicit and future-proof.
 
 ### 2. Create Homebrew Tap
 
