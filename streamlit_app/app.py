@@ -57,10 +57,16 @@ import_data_page = st.Page(
     icon="📥",
 )
 
+search_page = st.Page(
+    "pages/search.py",
+    title="Search",
+    icon="🔍",
+)
+
 # Build navigation
 pg = st.navigation(
     {
-        "Browse": [browser_page, conversation_page],
+        "Browse": [browser_page, conversation_page, search_page],
         "Analysis": [analysis_page, analytics_page],
         "Data": [import_data_page],
         "Info": [about_page],

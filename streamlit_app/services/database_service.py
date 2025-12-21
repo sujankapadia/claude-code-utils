@@ -226,7 +226,10 @@ class DatabaseService:
         query: str,
         project_id: Optional[str] = None,
         role: Optional[str] = None,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
         limit: int = 100,
+        offset: int = 0
     ) -> List[Dict[str, Any]]:
         """
         Search messages using FTS5 full-text search.
@@ -235,7 +238,10 @@ class DatabaseService:
             query: Search query
             project_id: Optional filter by project
             role: Optional filter by role (user/assistant)
+            start_date: Optional start date filter
+            end_date: Optional end date filter
             limit: Maximum number of results
+            offset: Offset for pagination
 
         Returns:
             List of matching messages with context
@@ -271,8 +277,16 @@ class DatabaseService:
             sql += " AND m.role = ?"
             params.append(role)
 
-        sql += " ORDER BY rank LIMIT ?"
-        params.append(limit)
+        if start_date:
+            sql += " AND m.timestamp >= ?"
+            params.append(start_date)
+
+        if end_date:
+            sql += " AND m.timestamp <= ?"
+            params.append(end_date)
+
+        sql += " ORDER BY rank LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
 
         cursor.execute(sql, params)
         rows = cursor.fetchall()
