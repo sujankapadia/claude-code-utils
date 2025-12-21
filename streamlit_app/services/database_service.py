@@ -280,6 +280,356 @@ class DatabaseService:
 
         return [dict(row) for row in rows]
 
+    def search_tool_inputs(
+        self,
+        query: str,
+        project_id: Optional[str] = None,
+        tool_name: Optional[str] = None,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        limit: int = 100,
+        offset: int = 0
+    ) -> List[Dict[str, Any]]:
+        """
+        Search tool input parameters using FTS5.
+
+        Args:
+            query: Search query
+            project_id: Optional filter by project
+            tool_name: Optional filter by tool name
+            start_date: Optional start date filter
+            end_date: Optional end date filter
+            limit: Maximum number of results
+            offset: Offset for pagination
+
+        Returns:
+            List of matching tool uses
+        """
+        conn = self._get_connection()
+        cursor = conn.cursor()
+
+        sql = """
+            SELECT
+                t.tool_use_id,
+                t.session_id,
+                t.message_index,
+                t.tool_name,
+                t.tool_input,
+                t.timestamp,
+                s.project_id,
+                p.project_name
+            FROM fts_tool_uses
+            JOIN tool_uses t ON fts_tool_uses.rowid = t.rowid
+            JOIN sessions s ON t.session_id = s.session_id
+            JOIN projects p ON s.project_id = p.project_id
+            WHERE fts_tool_uses MATCH 'tool_input:' || ?
+        """
+        params = [query]
+
+        if project_id:
+            sql += " AND s.project_id = ?"
+            params.append(project_id)
+
+        if tool_name:
+            sql += " AND t.tool_name = ?"
+            params.append(tool_name)
+
+        if start_date:
+            sql += " AND t.timestamp >= ?"
+            params.append(start_date)
+
+        if end_date:
+            sql += " AND t.timestamp <= ?"
+            params.append(end_date)
+
+        sql += " ORDER BY t.timestamp DESC LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+
+        cursor.execute(sql, params)
+        rows = cursor.fetchall()
+        conn.close()
+
+        return [dict(row) for row in rows]
+
+    def search_tool_results(
+        self,
+        query: str,
+        project_id: Optional[str] = None,
+        tool_name: Optional[str] = None,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        limit: int = 100,
+        offset: int = 0
+    ) -> List[Dict[str, Any]]:
+        """
+        Search tool results/output using FTS5.
+
+        Args:
+            query: Search query
+            project_id: Optional filter by project
+            tool_name: Optional filter by tool name
+            start_date: Optional start date filter
+            end_date: Optional end date filter
+            limit: Maximum number of results
+            offset: Offset for pagination
+
+        Returns:
+            List of matching tool uses
+        """
+        conn = self._get_connection()
+        cursor = conn.cursor()
+
+        sql = """
+            SELECT
+                t.tool_use_id,
+                t.session_id,
+                t.message_index,
+                t.tool_name,
+                t.tool_result,
+                t.is_error,
+                t.timestamp,
+                s.project_id,
+                p.project_name
+            FROM fts_tool_uses
+            JOIN tool_uses t ON fts_tool_uses.rowid = t.rowid
+            JOIN sessions s ON t.session_id = s.session_id
+            JOIN projects p ON s.project_id = p.project_id
+            WHERE fts_tool_uses MATCH 'tool_result:' || ?
+        """
+        params = [query]
+
+        if project_id:
+            sql += " AND s.project_id = ?"
+            params.append(project_id)
+
+        if tool_name:
+            sql += " AND t.tool_name = ?"
+            params.append(tool_name)
+
+        if start_date:
+            sql += " AND t.timestamp >= ?"
+            params.append(start_date)
+
+        if end_date:
+            sql += " AND t.timestamp <= ?"
+            params.append(end_date)
+
+        sql += " ORDER BY t.timestamp DESC LIMIT ? OFFSET ?"
+        params.extend([limit, offset])
+
+        cursor.execute(sql, params)
+        rows = cursor.fetchall()
+        conn.close()
+
+        return [dict(row) for row in rows]
+
+    def search_all(
+        self,
+        query: str,
+        project_id: Optional[str] = None,
+        tool_name: Optional[str] = None,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None,
+        limit: int = 100,
+        offset: int = 0
+    ) -> List[Dict[str, Any]]:
+        """
+        Combined search across messages and tools.
+
+        Args:
+            query: Search query
+            project_id: Optional filter by project
+            tool_name: Optional filter by tool name (only for tool results)
+            start_date: Optional start date filter
+            end_date: Optional end date filter
+            limit: Maximum number of results
+            offset: Offset for pagination
+
+        Returns:
+            List of all matching results (messages and tool uses)
+        """
+        conn = self._get_connection()
+        cursor = conn.cursor()
+
+        # Union of message search and tool search
+        sql = """
+            SELECT * FROM (
+                -- Messages
+                SELECT
+                    m.session_id,
+                    m.message_index,
+                    'message' as result_type,
+                    m.role as detail,
+                    m.content as matched_content,
+                    m.timestamp,
+                    s.project_id,
+                    p.project_name
+                FROM fts_messages
+                JOIN messages m ON fts_messages.rowid = m.message_id
+                JOIN sessions s ON m.session_id = s.session_id
+                JOIN projects p ON s.project_id = p.project_id
+                WHERE fts_messages MATCH ?
+        """
+        params = [query]
+
+        if project_id:
+            sql += " AND s.project_id = ?"
+            params.append(project_id)
+
+        if start_date:
+            sql += " AND m.timestamp >= ?"
+            params.append(start_date)
+
+        if end_date:
+            sql += " AND m.timestamp <= ?"
+            params.append(end_date)
+
+        sql += """
+                UNION ALL
+
+                -- Tool inputs
+                SELECT
+                    t.session_id,
+                    t.message_index,
+                    'tool_input' as result_type,
+                    t.tool_name as detail,
+                    t.tool_input as matched_content,
+                    t.timestamp,
+                    s.project_id,
+                    p.project_name
+                FROM fts_tool_uses
+                JOIN tool_uses t ON fts_tool_uses.rowid = t.rowid
+                JOIN sessions s ON t.session_id = s.session_id
+                JOIN projects p ON s.project_id = p.project_id
+                WHERE fts_tool_uses MATCH 'tool_input:' || ?
+        """
+        params.append(query)
+
+        if project_id:
+            sql += " AND s.project_id = ?"
+            params.append(project_id)
+
+        if tool_name:
+            sql += " AND t.tool_name = ?"
+            params.append(tool_name)
+
+        if start_date:
+            sql += " AND t.timestamp >= ?"
+            params.append(start_date)
+
+        if end_date:
+            sql += " AND t.timestamp <= ?"
+            params.append(end_date)
+
+        sql += """
+                UNION ALL
+
+                -- Tool results
+                SELECT
+                    t.session_id,
+                    t.message_index,
+                    'tool_result' as result_type,
+                    t.tool_name as detail,
+                    t.tool_result as matched_content,
+                    t.timestamp,
+                    s.project_id,
+                    p.project_name
+                FROM fts_tool_uses
+                JOIN tool_uses t ON fts_tool_uses.rowid = t.rowid
+                JOIN sessions s ON t.session_id = s.session_id
+                JOIN projects p ON s.project_id = p.project_id
+                WHERE fts_tool_uses MATCH 'tool_result:' || ?
+        """
+        params.append(query)
+
+        if project_id:
+            sql += " AND s.project_id = ?"
+            params.append(project_id)
+
+        if tool_name:
+            sql += " AND t.tool_name = ?"
+            params.append(tool_name)
+
+        if start_date:
+            sql += " AND t.timestamp >= ?"
+            params.append(start_date)
+
+        if end_date:
+            sql += " AND t.timestamp <= ?"
+            params.append(end_date)
+
+        sql += """
+            )
+            ORDER BY timestamp DESC
+            LIMIT ? OFFSET ?
+        """
+        params.extend([limit, offset])
+
+        cursor.execute(sql, params)
+        rows = cursor.fetchall()
+        conn.close()
+
+        return [dict(row) for row in rows]
+
+    def get_unique_tool_names(self) -> List[str]:
+        """Get list of all tool names used."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT DISTINCT tool_name FROM tool_uses ORDER BY tool_name")
+        rows = cursor.fetchall()
+        conn.close()
+        return [row["tool_name"] for row in rows]
+
+    def get_mcp_tool_stats(self) -> Dict[str, Any]:
+        """Get MCP tool usage statistics."""
+        conn = self._get_connection()
+        cursor = conn.cursor()
+
+        # Get MCP tool usage by tool name
+        cursor.execute("""
+            SELECT
+                tool_name,
+                COUNT(*) as use_count,
+                COUNT(DISTINCT session_id) as session_count
+            FROM tool_uses
+            WHERE tool_name LIKE 'mcp__%'
+            GROUP BY tool_name
+            ORDER BY use_count DESC
+        """)
+        tool_stats = [dict(row) for row in cursor.fetchall()]
+
+        # Get MCP by server (extract server from tool name)
+        cursor.execute("""
+            SELECT
+                SUBSTR(tool_name, 1, INSTR(SUBSTR(tool_name, 6), '__') + 4) as mcp_server,
+                COUNT(*) as total_uses,
+                COUNT(DISTINCT session_id) as session_count
+            FROM tool_uses
+            WHERE tool_name LIKE 'mcp__%'
+            GROUP BY mcp_server
+            ORDER BY total_uses DESC
+        """)
+        server_stats = [dict(row) for row in cursor.fetchall()]
+
+        # Get total MCP uses
+        cursor.execute("""
+            SELECT
+                COUNT(*) as total_mcp_uses,
+                COUNT(DISTINCT session_id) as total_sessions
+            FROM tool_uses
+            WHERE tool_name LIKE 'mcp__%'
+        """)
+        totals = dict(cursor.fetchone())
+
+        conn.close()
+
+        return {
+            "total_uses": totals.get("total_mcp_uses", 0),
+            "total_sessions": totals.get("total_sessions", 0),
+            "by_tool": tool_stats,
+            "by_server": server_stats
+        }
+
     # =========================================================================
     # Analytics queries
     # =========================================================================
