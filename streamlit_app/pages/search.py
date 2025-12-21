@@ -259,3 +259,82 @@ if "last_search_query" not in st.session_state:
 if search_query != st.session_state.last_search_query:
     st.session_state.search_page = 0
     st.session_state.last_search_query = search_query
+
+# MCP Analysis Section
+st.divider()
+st.markdown("## 🔌 MCP Tool Analysis")
+
+with st.expander("View MCP Tool Usage Statistics", expanded=False):
+    try:
+        mcp_stats = db_service.get_mcp_tool_stats()
+
+        if mcp_stats['total_uses'] == 0:
+            st.info("No MCP tool usage found in your conversations.")
+        else:
+            # Overview metrics
+            col1, col2 = st.columns(2)
+            with col1:
+                st.metric("Total MCP Uses", f"{mcp_stats['total_uses']:,}")
+            with col2:
+                st.metric("Sessions with MCP", mcp_stats['total_sessions'])
+
+            st.divider()
+
+            # Two-column layout for servers and tools
+            col1, col2 = st.columns(2)
+
+            with col1:
+                st.markdown("### By MCP Server")
+                if mcp_stats['by_server']:
+                    for server in mcp_stats['by_server']:
+                        server_name = server['mcp_server']
+                        uses = server['total_uses']
+                        sessions = server['session_count']
+
+                        # Create clickable link that filters search
+                        st.markdown(f"""
+                        **{server_name}**
+                        - {uses:,} uses across {sessions} session(s)
+                        """)
+                else:
+                    st.info("No MCP servers detected.")
+
+            with col2:
+                st.markdown("### Top MCP Tools")
+                if mcp_stats['by_tool']:
+                    # Show top 10 tools
+                    for i, tool in enumerate(mcp_stats['by_tool'][:10], 1):
+                        tool_name = tool['tool_name']
+                        uses = tool['use_count']
+                        sessions = tool['session_count']
+
+                        # Extract display name (remove mcp__ prefix for readability)
+                        display_name = tool_name.replace('mcp__', '').replace('__', ' → ')
+
+                        st.markdown(f"""
+                        **{i}. {display_name}**
+                        {uses:,} uses in {sessions} session(s)
+                        """)
+
+                        if i >= 10:
+                            break
+                else:
+                    st.info("No MCP tools detected.")
+
+            # Full tool list in expandable section
+            if len(mcp_stats['by_tool']) > 10:
+                st.divider()
+                with st.expander(f"Show all {len(mcp_stats['by_tool'])} MCP tools"):
+                    for tool in mcp_stats['by_tool']:
+                        tool_name = tool['tool_name']
+                        uses = tool['use_count']
+                        sessions = tool['session_count']
+                        display_name = tool_name.replace('mcp__', '').replace('__', ' → ')
+
+                        st.markdown(f"**{display_name}**: {uses:,} uses in {sessions} session(s)")
+
+    except Exception as e:
+        st.error(f"Error loading MCP statistics: {e}")
+        import traceback
+        with st.expander("Error details"):
+            st.code(traceback.format_exc())
