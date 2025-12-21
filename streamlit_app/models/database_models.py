@@ -115,3 +115,19 @@ class ToolUsageSummary(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class SearchResult(BaseModel):
+    """Search result item."""
+
+    session_id: str
+    message_index: int
+    result_type: str = Field(..., description="message, tool_input, or tool_result")
+    detail: str = Field(..., description="role for messages, tool_name for tools")
+    matched_content: str = Field(..., description="full content or snippet")
+    timestamp: datetime
+    project_id: str
+    project_name: str
+
+    class Config:
+        from_attributes = True

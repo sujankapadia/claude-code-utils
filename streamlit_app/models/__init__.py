@@ -8,6 +8,7 @@ from .database_models import (
     ProjectSummary,
     SessionSummary,
     ToolUsageSummary,
+    SearchResult,
 )
 from .analysis_models import AnalysisType, AnalysisResult, AnalysisTypeMetadata
 
@@ -19,6 +20,7 @@ __all__ = [
     "ProjectSummary",
     "SessionSummary",
     "ToolUsageSummary",
+    "SearchResult",
     "AnalysisType",
     "AnalysisResult",
     "AnalysisTypeMetadata",

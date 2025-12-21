@@ -248,17 +248,18 @@ class DatabaseService:
             SELECT
                 m.message_id,
                 m.session_id,
+                m.message_index,
                 m.role,
                 m.content,
                 m.timestamp,
                 s.project_id,
                 p.project_name,
-                snippet(messages_fts, -1, '<mark>', '</mark>', '...', 64) as snippet
-            FROM messages_fts
-            JOIN messages m ON messages_fts.rowid = m.message_id
+                snippet(fts_messages, -1, '<mark>', '</mark>', '...', 64) as snippet
+            FROM fts_messages
+            JOIN messages m ON fts_messages.rowid = m.message_id
             JOIN sessions s ON m.session_id = s.session_id
             JOIN projects p ON s.project_id = p.project_id
-            WHERE messages_fts MATCH ?
+            WHERE fts_messages MATCH ?
         """
         params = [query]
 
