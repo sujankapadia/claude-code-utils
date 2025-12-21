@@ -208,17 +208,18 @@ try:
 
     # Scroll to target message if deep linking
     if target_message_index is not None:
-        st.markdown(f"""
+        import streamlit.components.v1 as components
+        components.html(f"""
         <script>
-            // Wait for page to fully load
+            // Wait for parent page to fully load
             setTimeout(function() {{
-                const targetElement = document.getElementById('msg-{target_message_index}');
+                const targetElement = window.parent.document.getElementById('msg-{target_message_index}');
                 if (targetElement) {{
                     targetElement.scrollIntoView({{ behavior: 'smooth', block: 'center' }});
                 }}
-            }}, 500);
+            }}, 1000);
         </script>
-        """, unsafe_allow_html=True)
+        """, height=0)
 
     # Scroll to top button at bottom
     if len(messages) > 5:
