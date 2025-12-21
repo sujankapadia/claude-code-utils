@@ -4,6 +4,29 @@
 
 Package Claude Code Analytics as a Homebrew formula to enable simple installation via `brew install`.
 
+**Documentation Reference**: This plan follows the latest Homebrew guidelines as of December 2024:
+- [Formula Cookbook](https://docs.brew.sh/Formula-Cookbook)
+- [Python for Formula Authors](https://docs.brew.sh/Python-for-Formula-Authors)
+- [How to Open a PR](https://docs.brew.sh/How-To-Open-a-Homebrew-Pull-Request)
+- [Taps](https://docs.brew.sh/Taps)
+
+## Prerequisites
+
+### Homebrew Formula Requirements
+
+According to Homebrew guidelines, all formulas must have:
+
+1. **Homepage**: An HTTPS homepage is required (we don't accept formulas without one!)
+2. **License**: Must use SPDX License List identifier or be public domain
+3. **Description**: Clear, concise description of what the tool does
+4. **Meaningful Tests**: Tests must verify actual functionality, not just `--version` or `--help`
+
+### Repository Requirements for Taps
+
+- Repository name must be `homebrew-something` (the prefix is mandatory)
+- Users can reference it as `username/something` (prefix omitted in commands)
+- Repository should contain `Formula/` directory with formula files
+
 ## Installation Experience
 
 ### User Workflow
@@ -203,31 +226,49 @@ mkdir Formula
 
 ### 3. Generate Python Resource Stanzas
 
-Use `homebrew-pypi-poet` to generate resource stanzas for Python dependencies:
+Use Homebrew's built-in tool to automatically generate resource stanzas:
 
 ```bash
-pip install homebrew-pypi-poet
+# Primary method (recommended by Homebrew)
+brew update-python-resources claude-code-analytics
 
-# Generate resources
+# If that fails, use print-only mode
+brew update-python-resources --print-only claude-code-analytics
+
+# Fallback: Use homebrew-pypi-poet if automatic tool fails
+pip install homebrew-pypi-poet
 poet streamlit pandas altair google-generativeai openai jinja2 pyyaml python-dotenv
 ```
 
-This outputs the `resource` blocks needed in the formula.
+**Note**: `brew update-python-resources` is the official Homebrew tool and should be tried first. It automatically generates all required `resource` blocks by analyzing the package dependencies.
 
 ### 4. Test Formula Locally
 
+Follow Homebrew's official testing workflow:
+
 ```bash
-# Install from local formula
+# Set environment variable to use local tap
+export HOMEBREW_NO_INSTALL_FROM_API=1
+
+# Install from local formula (build from source)
 brew install --build-from-source ./Formula/claude-code-analytics.rb
 
-# Test it works
+# Run the formula's test suite
+brew test claude-code-analytics
+
+# Audit the formula (strict mode + online checks)
+brew audit --strict --online claude-code-analytics
+
+# Test CLI commands work
 claude-code-analytics --help
 claude-code-import --help
 
-# Uninstall and test again
+# Uninstall and reinstall to test clean installation
 brew uninstall claude-code-analytics
-brew install claude-code-analytics
+brew install --build-from-source ./Formula/claude-code-analytics.rb
 ```
+
+**Important**: All tests must pass without issues before publishing the formula.
 
 ### 5. Publish Tap
 
@@ -329,30 +370,69 @@ This works perfectly with Homebrew's philosophy of not polluting user directorie
 
 ## Testing Strategy
 
-### Local Testing
+### Official Homebrew Testing Workflow
+
+Follow Homebrew's recommended three-step testing process:
+
 ```bash
-# Test formula syntax
-brew audit --strict ./Formula/claude-code-analytics.rb
+# Step 0: Set environment to use local tap
+export HOMEBREW_NO_INSTALL_FROM_API=1
 
-# Test installation
-brew install --build-from-source ./Formula/claude-code-analytics.rb
+# Step 1: Install and test the formula
+brew install --build-from-source claude-code-analytics
 
-# Test all CLI commands
+# Step 2: Run the test suite
+brew test claude-code-analytics
+
+# Step 3: Audit the formula (after installation)
+brew audit --strict --online claude-code-analytics
+
+# Additional verification: Test CLI commands
 claude-code-analytics --help
 claude-code-import --help
 claude-code-search --help
 claude-code-analyze --help
 ```
 
-### Test on Clean System
-Use Docker to test on clean macOS environment:
-```bash
-# Start macOS container
-docker run -it homebrew/brew:latest
+**Requirements**: All three steps must pass without issues before committing changes.
 
-# Install formula
+### Test Fixture Best Practices
+
+According to Homebrew guidelines, avoid superficial tests like `--version` or `--help`. Instead, implement meaningful tests:
+
+- For CLI apps: Test actual functionality (e.g., import a sample conversation)
+- Use `testpath` directory for temporary test files
+- Verify core features work, not just that the binary exists
+
+Example test in formula:
+```ruby
+test do
+  # Create a minimal test transcript
+  (testpath/"test.jsonl").write('{"message":{"role":"user","content":"test"}}')
+
+  # Test that import can process it (would create DB, import, etc)
+  system bin/"claude-code-import", "--help"
+
+  # Better: Actually test import functionality
+  ENV["CLAUDE_CONVERSATIONS_DIR"] = testpath
+  system bin/"claude-code-import"
+  assert_predicate testpath/"conversations.db", :exist?
+end
+```
+
+### Test on Clean System
+
+Use Homebrew's official Docker image:
+```bash
+# Start Homebrew container
+docker run -it homebrew/brew:latest bash
+
+# Inside container: Install formula
 brew tap sujankapadia/claude-code-analytics
 brew install claude-code-analytics
+
+# Verify installation
+claude-code-analytics --help
 ```
 
 ## Documentation Updates
