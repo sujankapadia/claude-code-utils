@@ -44,7 +44,7 @@ mkdir -p "$CONFIG_DIR"
 # Copy scripts
 echo "📋 Copying scripts..."
 cp "$SCRIPT_DIR/hooks/export-conversation.sh" "$SCRIPTS_DIR/"
-cp "$SCRIPT_DIR/scripts/pretty-print-transcript.py" "$SCRIPTS_DIR/"
+cp "$SCRIPT_DIR/hooks/pretty-print-transcript.py" "$SCRIPTS_DIR/"
 
 # Make scripts executable
 echo "🔧 Setting permissions..."
@@ -54,11 +54,22 @@ chmod +x "$SCRIPTS_DIR/pretty-print-transcript.py"
 # Set up configuration file
 echo "⚙️  Setting up configuration..."
 if [ ! -f "$CONFIG_FILE" ]; then
-    cp "$SCRIPT_DIR/.env.example" "$CONFIG_FILE"
+    cp "$SCRIPT_DIR/claude_code_analytics/.env.example" "$CONFIG_FILE"
     echo -e "${GREEN}✓ Created configuration file at $CONFIG_FILE${NC}"
     echo -e "${YELLOW}  Edit this file to customize settings (optional)${NC}"
 else
     echo -e "${GREEN}✓ Configuration file already exists at $CONFIG_FILE${NC}"
+fi
+
+# Install Python package
+echo "📦 Installing Python package and dependencies..."
+if command -v pip3 &> /dev/null; then
+    pip3 install -e "$SCRIPT_DIR"
+    echo -e "${GREEN}✓ Installed claude-code-analytics package${NC}"
+    echo -e "${GREEN}✓ All dependencies installed automatically${NC}"
+else
+    echo -e "${RED}Error: pip3 is required but not installed.${NC}"
+    exit 1
 fi
 
 # Configure settings.json
@@ -142,22 +153,21 @@ fi
 
 echo "Next steps:"
 echo ""
-echo "Required for basic features (export, browse, search):"
-echo "  1. Create database: python3 scripts/create_database.py"
-echo "  2. Import conversations: python3 scripts/import_conversations.py"
-echo "  3. Launch dashboard: ./run_dashboard.sh"
+echo "Quick start:"
+echo "  1. Import conversations: claude-code-import"
+echo "  2. Launch dashboard: claude-code-analytics"
 echo ""
-echo "Required for AI analysis features:"
-echo "  4. Edit configuration: $CONFIG_FILE"
-echo "     Set OPENROUTER_API_KEY or GOOGLE_API_KEY"
-echo "     (Get keys from https://openrouter.ai/keys or https://aistudio.google.com/app/apikey)"
+echo "CLI Commands available:"
+echo "  claude-code-analytics    # Launch dashboard"
+echo "  claude-code-import       # Import conversations"
+echo "  claude-code-search       # Search conversations"
+echo "  claude-code-analyze      # Analyze sessions"
 echo ""
-echo "Optional customization:"
-echo "  - Edit $CONFIG_FILE to customize:"
-echo "    - Data directories"
-echo "    - Pagination settings"
-echo "    - Search results per page"
-echo "    - Display settings"
+echo "For AI analysis features:"
+echo "  Edit $CONFIG_FILE"
+echo "  Set OPENROUTER_API_KEY or GOOGLE_API_KEY"
+echo "  (Get keys from https://openrouter.ai/keys or https://aistudio.google.com/app/apikey)"
 echo ""
-echo "To test the export hook, start a new Claude Code session and exit it."
-echo "You should see a new conversation file in $CONVERSATIONS_DIR"
+echo "To test the export hook:"
+echo "  Start a new Claude Code session and exit it."
+echo "  Check $CONVERSATIONS_DIR for exported conversation."

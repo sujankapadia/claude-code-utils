@@ -28,10 +28,7 @@ from dotenv import load_dotenv
 import yaml
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 
-# Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from streamlit_app.services.llm_providers import create_provider, OpenRouterProvider
+from claude_code_analytics.streamlit_app.services.llm_providers import create_provider, OpenRouterProvider
 
 # Load environment variables from .env file
 load_dotenv()

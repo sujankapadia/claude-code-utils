@@ -7,10 +7,9 @@ from typing import List, Optional, Dict, Any
 from datetime import datetime
 
 # Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-import config
-from streamlit_app.models import (
+from claude_code_analytics import config
+from claude_code_analytics.streamlit_app.models import (
     Project,
     Session,
     Message,

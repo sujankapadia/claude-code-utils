@@ -12,9 +12,7 @@ import sqlite3
 from pathlib import Path
 import sys
 
-# Add parent directory to path for config import
-sys.path.insert(0, str(Path(__file__).parent.parent))
-import config
+from claude_code_analytics import config
 
 
 FTS_SCHEMA = """

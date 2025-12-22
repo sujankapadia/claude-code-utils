@@ -1,0 +1,77 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "claude-code-analytics"
+version = "1.0.0"
+description = "Analytics platform for Claude Code conversations"
+readme = "README.md"
+license = {text = "MIT"}
+authors = [
+    {name = "Sujan Kapadia", email = "sujan@example.com"}  # TODO: Update email
+]
+requires-python = ">=3.9"
+keywords = ["claude", "code", "analytics", "streamlit", "ai", "llm"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+]
+
+dependencies = [
+    "streamlit>=1.28.0",
+    "pandas>=2.0.0",
+    "altair>=5.0.0",
+    "google-generativeai>=0.3.0",
+    "openai>=1.0.0",
+    "jinja2>=3.0.0",
+    "pyyaml>=6.0.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "black>=23.0.0",
+    "ruff>=0.1.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/sujankapadia/claude-code-utils"
+Documentation = "https://github.com/sujankapadia/claude-code-utils#readme"
+Repository = "https://github.com/sujankapadia/claude-code-utils"
+Issues = "https://github.com/sujankapadia/claude-code-utils/issues"
+
+[project.scripts]
+claude-code-analytics = "claude_code_analytics.cli:dashboard"
+claude-code-import = "claude_code_analytics.cli:import_conversations"
+claude-code-search = "claude_code_analytics.cli:search"
+claude-code-analyze = "claude_code_analytics.cli:analyze"
+
+[tool.setuptools]
+packages = ["claude_code_analytics"]
+
+[tool.setuptools.package-data]
+claude_code_analytics = [
+    "streamlit_app/**/*",
+    "scripts/**/*",
+    "prompts/**/*",
+    "hooks/**/*",
+    ".env.example",
+]
+
+[tool.black]
+line-length = 100
+target-version = ['py39', 'py310', 'py311']
+
+[tool.ruff]
+line-length = 100
+target-version = "py39"

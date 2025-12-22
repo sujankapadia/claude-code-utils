@@ -8,8 +8,8 @@ from typing import Dict, Optional
 import yaml
 from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 
-from streamlit_app.models import AnalysisType, AnalysisResult, AnalysisTypeMetadata
-from streamlit_app.services.llm_providers import LLMProvider, create_provider
+from claude_code_analytics.streamlit_app.models import AnalysisType, AnalysisResult, AnalysisTypeMetadata
+from claude_code_analytics.streamlit_app.services.llm_providers import LLMProvider, create_provider
 
 
 class AnalysisService:

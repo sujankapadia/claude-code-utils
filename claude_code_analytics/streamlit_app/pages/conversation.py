@@ -6,10 +6,9 @@ from pathlib import Path
 from datetime import datetime
 
 # Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-import config
-from streamlit_app.services import DatabaseService
+from claude_code_analytics import config
+from claude_code_analytics.streamlit_app.services import DatabaseService
 
 # Initialize service
 if "db_service" not in st.session_state:

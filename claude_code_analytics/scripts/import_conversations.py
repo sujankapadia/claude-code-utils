@@ -18,9 +18,7 @@ from datetime import datetime
 from typing import Dict, List, Tuple, Optional, Any
 import logging
 
-# Add parent directory to path for config import
-sys.path.insert(0, str(Path(__file__).parent.parent))
-import config
+from claude_code_analytics import config
 
 
 # Configure logging
@@ -424,7 +422,7 @@ def main():
         logger.info(f"📊 Database not found - creating new database at: {db_path}")
         try:
             # Import create_database module
-            from create_database import create_database, SCHEMA_SQL
+            from claude_code_analytics.scripts.create_database import create_database, SCHEMA_SQL
             create_database(str(db_path))
             logger.info("✅ Database created successfully\n")
         except Exception as e:
@@ -499,7 +497,7 @@ def main():
         if total_messages > 0:
             logger.info("\n🔍 Rebuilding search index...")
             try:
-                from create_fts_index import create_fts_index
+                from claude_code_analytics.scripts.create_fts_index import create_fts_index
                 conn.close()  # Close connection before FTS rebuild
                 create_fts_index(str(db_path))
                 logger.info("✅ Search index updated")

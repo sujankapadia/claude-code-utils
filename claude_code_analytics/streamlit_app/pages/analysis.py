@@ -7,11 +7,10 @@ from pathlib import Path
 from datetime import datetime
 
 # Add parent directory to path for imports
-sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-import config
-from streamlit_app.services import DatabaseService, AnalysisService, OpenRouterProvider
-from streamlit_app.models import AnalysisType
+from claude_code_analytics import config
+from claude_code_analytics.streamlit_app.services import DatabaseService, AnalysisService, OpenRouterProvider
+from claude_code_analytics.streamlit_app.models import AnalysisType
 
 
 def get_git_commit_id() -> str:

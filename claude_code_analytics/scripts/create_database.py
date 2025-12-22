@@ -15,9 +15,7 @@ import os
 import sys
 from pathlib import Path
 
-# Add parent directory to path for config import
-sys.path.insert(0, str(Path(__file__).parent.parent))
-import config
+from claude_code_analytics import config
 
 
 # SQLite schema definition
