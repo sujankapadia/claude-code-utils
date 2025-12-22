@@ -27,6 +27,18 @@ if ! command -v python3 &> /dev/null; then
     exit 1
 fi
 
+# Check Python version (requires 3.9+)
+PYTHON_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+REQUIRED_VERSION="3.9"
+
+# Compare versions
+if [ "$(printf '%s\n' "$REQUIRED_VERSION" "$PYTHON_VERSION" | sort -V | head -n1)" != "$REQUIRED_VERSION" ]; then
+    echo -e "${RED}Error: Python $REQUIRED_VERSION or higher required, found $PYTHON_VERSION${NC}"
+    echo -e "${YELLOW}Please upgrade Python: https://www.python.org/downloads/${NC}"
+    exit 1
+fi
+echo -e "${GREEN}✓ Python $PYTHON_VERSION detected${NC}"
+
 if ! command -v jq &> /dev/null; then
     echo -e "${YELLOW}Warning: jq is not installed. Will use manual JSON editing.${NC}"
     echo -e "${YELLOW}For better JSON handling, install jq: brew install jq${NC}"

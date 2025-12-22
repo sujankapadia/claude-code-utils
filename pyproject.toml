@@ -9,7 +9,7 @@ description = "Analytics platform for Claude Code conversations"
 readme = "README.md"
 license = {text = "MIT"}
 authors = [
-    {name = "Sujan Kapadia", email = "sujan@example.com"}  # TODO: Update email
+    {name = "Sujan Kapadia"}
 ]
 requires-python = ">=3.9"
 keywords = ["claude", "code", "analytics", "streamlit", "ai", "llm"]
