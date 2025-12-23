@@ -1,15 +1,75 @@
 # Claude Code Analytics
 
-A comprehensive analytics platform for [Claude Code](https://claude.com/claude-code) that automatically captures, archives, and analyzes your AI development conversations. Features an interactive dashboard, powerful search, and AI-powered insights across all your sessions.
+A analysis tool for [Claude Code](https://claude.com/claude-code) that automatically captures, archives, and analyzes your AI development conversations. Features an interactive dashboard, full-text search, and AI-powered insights across all your sessions.
 
-## Overview
+## What It Does
 
-Claude Code Analytics transforms your AI development workflow into actionable insights. It automatically captures every conversation, stores them in a searchable database, and provides an interactive dashboard to explore your development patterns, tool usage, and decision-making process.
+Claude Code Analytics transforms your AI development workflow into actionable insights:
+- **Automatically captures** every conversation when you exit Claude Code
+- **Stores and indexes** conversations in a searchable SQLite database
+- **Provides an interactive dashboard** to explore patterns, tool usage, and decisions
+- **Enables AI-powered analysis** of your development sessions using 300+ LLM models
 
-**How it works:**
-1. **Capture** - SessionEnd hooks automatically export conversations when you exit Claude Code
-2. **Store** - Conversations are imported into a SQLite database with full-text search
-3. **Analyze** - Interactive Streamlit dashboard provides search, analytics, and AI-powered insights
+## Prerequisites
+
+Before installing, you need:
+
+- **[Claude Code](https://claude.com/claude-code)** - The AI coding assistant (this tool captures its conversations)
+- **Python 3.9+** - Check with `python3 --version`
+- **jq** - JSON processor for installation script
+  - macOS: `brew install jq`
+  - Linux: `apt-get install jq` or `yum install jq`
+
+## Quick Start
+
+### 1. Install
+
+```bash
+git clone https://github.com/sujankapadia/claude-code-utils.git
+cd claude-code-utils
+./install.sh
+```
+
+The installer automatically:
+- Installs the Python package and all dependencies
+- Sets up hooks to capture conversations
+- Creates the CLI commands
+- Configures Claude Code settings
+
+### 2. Import Existing Conversations
+
+```bash
+claude-code-import
+```
+
+This creates the database, imports all existing conversations, and builds the search index.
+
+### 3. Launch Dashboard
+
+```bash
+claude-code-analytics
+```
+
+The dashboard opens at `http://localhost:8501`. Start exploring your conversations!
+
+### 4. (Optional) Configure AI Analysis
+
+To enable AI-powered analysis features, add an API key to your config file:
+
+```bash
+# Edit the config file
+nano ~/.config/claude-code-analytics/.env
+
+# Add one of these:
+OPENROUTER_API_KEY=sk-or-your-key-here  # For 300+ models
+GOOGLE_API_KEY=your-key-here             # For Gemini models
+```
+
+Get API keys from [OpenRouter](https://openrouter.ai/keys) or [Google AI Studio](https://aistudio.google.com/app/apikey).
+
+That's it! New conversations will be automatically captured when you exit Claude Code sessions.
+
+---
 
 ## Key Features
 
@@ -27,7 +87,7 @@ The Streamlit-based dashboard is your primary interface for exploring conversati
 - **Analytics Dashboard** - Visual insights into your development patterns:
   - Messages and token usage over time
   - Tool usage distribution and error rates
-  - Project activity metrics
+  - Project statistics (sessions, messages, tool uses, activity timeline)
   - Daily activity trends
 - **Full-Text Search** - FTS5-powered search across all messages, tool inputs, and tool results:
   - Scope filtering (messages, tool inputs/results)
@@ -293,10 +353,10 @@ The **Search** page provides powerful full-text search:
 ### View Analytics
 
 The **Analytics Dashboard** provides visual insights:
-- Tool usage distribution (top 10 tools by usage)
-- Daily activity trends (messages, tokens, sessions)
-- Token usage over time (input vs output)
-- Project statistics (sorted by message volume)
+- **Tool Usage** - Distribution of top 10 tools, error rates, and session usage
+- **Daily Activity** - Messages, tokens, and sessions over time (configurable time range)
+- **Token Usage** - Input vs output tokens with stacked area chart
+- **Project Statistics** - Sessions, messages, tool uses, and activity timeline per project (sorted by message volume)
 
 ### Run AI Analysis
 
@@ -311,26 +371,28 @@ The **AI Analysis** page lets you analyze sessions with LLMs:
 
 ### CLI Tools
 
+The installation provides several CLI commands for working with your conversations:
+
 #### Search Conversations
 
 ```bash
-python3 scripts/search_fts.py "error handling"
+claude-code-search "error handling"
 ```
 
 #### Run Analysis from CLI
 
 ```bash
 # Analyze technical decisions
-python3 scripts/analyze_session.py <session-id> --type=decisions
+claude-code-analyze <session-id> --type=decisions
 
 # Specify model and save output
-python3 scripts/analyze_session.py <session-id> \
+claude-code-analyze <session-id> \
   --type=errors \
   --model=anthropic/claude-sonnet-4.5 \
   --output=analysis.md
 
 # Custom analysis
-python3 scripts/analyze_session.py <session-id> \
+claude-code-analyze <session-id> \
   --type=custom \
   --prompt="Summarize key technical insights"
 ```
@@ -341,20 +403,35 @@ python3 scripts/analyze_session.py <session-id> \
 - `openai/gpt-5.2-chat` - Latest GPT ($1.75/1M)
 - `google/gemini-3-flash-preview` - 1M context window ($0.50/1M)
 
-### Incremental Database Updates
+#### Import New Conversations
 
-Run the import script anytime to update the database with new conversations:
+Run the import command anytime to update the database with new conversations:
 
 ```bash
-python3 scripts/import_conversations.py
+claude-code-import
 ```
 
-The script automatically:
+The command automatically:
 - Detects existing sessions
 - Imports only new messages
 - Updates session metadata (end times, message counts)
 - Preserves all existing data with zero duplicates
 - Works efficiently on active or completed sessions
+
+### Using Python Scripts Directly
+
+If you prefer to use the Python scripts directly instead of CLI commands:
+
+```bash
+# Search
+python3 scripts/search_fts.py "error handling"
+
+# Analyze
+python3 scripts/analyze_session.py <session-id> --type=decisions
+
+# Import
+python3 scripts/import_conversations.py
+```
 
 ### Manual Export
 
@@ -474,31 +551,9 @@ $ Read file_path=/path/to/auth.js
 5  }
 ```
 
-## Installation Details
-
-### Automated Installation (Recommended)
-
-The `install.sh` script handles everything:
-
-```bash
-./install.sh
-```
-
-It will:
-- Create `~/.claude/scripts/` and `~/claude-conversations/` directories
-- Copy hook and formatting scripts
-- Set executable permissions
-- Update `~/.claude/settings.json` with SessionEnd hook (backs up existing settings)
-
-**Requirements:** The script uses `jq` for JSON manipulation. Install with:
-- macOS: `brew install jq`
-- Linux: `apt-get install jq`
-
-If `jq` is not available, the script provides manual configuration instructions.
-
 ### Manual Installation
 
-If you prefer manual setup:
+If you need to install manually or want to understand what the installer does:
 
 #### 1. Create directories
 
@@ -540,10 +595,13 @@ Add to `~/.claude/settings.json`:
 
 If you have existing hooks, merge the `SessionEnd` entry into your existing `hooks` object.
 
-#### 4. Install Python dependencies
+#### 4. Install Python package and dependencies
 
 ```bash
-pip install streamlit pandas altair google-generativeai openai jinja2 pyyaml python-dotenv
+# From the repository directory
+pip install -e .
+
+# This installs the package and all dependencies, and creates the CLI commands
 ```
 
 ### Troubleshooting
@@ -573,8 +631,8 @@ chmod 755 ~/.claude/scripts
 If database import fails:
 - Verify JSONL files exist in `~/claude-conversations/`
 - Check file permissions
-- Ensure Python 3.7+ is installed
-- Run with verbose output: `python3 scripts/import_conversations.py -v`
+- Ensure Python 3.9+ is installed
+- Run with verbose output: `claude-code-import -v`
 
 #### Dashboard not launching
 
