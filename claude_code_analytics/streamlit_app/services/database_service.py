@@ -155,6 +155,44 @@ class DatabaseService:
         conn.close()
         return [Message(**dict(row)) for row in rows]
 
+    def get_messages_in_range(
+        self,
+        session_id: str,
+        start_time: Optional[datetime] = None,
+        end_time: Optional[datetime] = None
+    ) -> List[Message]:
+        """
+        Get messages for a session filtered by timestamp range.
+
+        Args:
+            session_id: Session UUID
+            start_time: Start of time range (inclusive)
+            end_time: End of time range (inclusive)
+
+        Returns:
+            List of Message objects in chronological order
+        """
+        conn = self._get_connection()
+        cursor = conn.cursor()
+
+        query = "SELECT * FROM messages WHERE session_id = ?"
+        params = [session_id]
+
+        if start_time:
+            query += " AND timestamp >= ?"
+            params.append(start_time.isoformat())
+
+        if end_time:
+            query += " AND timestamp <= ?"
+            params.append(end_time.isoformat())
+
+        query += " ORDER BY message_index"
+
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        conn.close()
+        return [Message(**dict(row)) for row in rows]
+
     def get_token_usage_for_session(self, session_id: str) -> Dict[str, int]:
         """
         Get aggregated token usage for a session.
@@ -208,6 +246,44 @@ class DatabaseService:
             """,
             (session_id,),
         )
+        rows = cursor.fetchall()
+        conn.close()
+        return [ToolUse(**dict(row)) for row in rows]
+
+    def get_tool_uses_in_range(
+        self,
+        session_id: str,
+        start_time: Optional[datetime] = None,
+        end_time: Optional[datetime] = None
+    ) -> List[ToolUse]:
+        """
+        Get tool uses for a session filtered by timestamp range.
+
+        Args:
+            session_id: Session UUID
+            start_time: Start of time range (inclusive)
+            end_time: End of time range (inclusive)
+
+        Returns:
+            List of ToolUse objects in chronological order
+        """
+        conn = self._get_connection()
+        cursor = conn.cursor()
+
+        query = "SELECT * FROM tool_uses WHERE session_id = ?"
+        params = [session_id]
+
+        if start_time:
+            query += " AND timestamp >= ?"
+            params.append(start_time.isoformat())
+
+        if end_time:
+            query += " AND timestamp <= ?"
+            params.append(end_time.isoformat())
+
+        query += " ORDER BY timestamp"
+
+        cursor.execute(query, params)
         rows = cursor.fetchall()
         conn.close()
         return [ToolUse(**dict(row)) for row in rows]
