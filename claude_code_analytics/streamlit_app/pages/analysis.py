@@ -608,11 +608,25 @@ try:
                     output_tokens=result.output_tokens or 0,
                 )
 
-                # Generate unique filename with timestamp
+                # Generate default filename with timestamp
                 timestamp_str = datetime.now().strftime("%Y%m%d_%H%M%S")
                 # Sanitize project name for filename (remove special chars)
                 safe_project_name = "".join(c if c.isalnum() or c in ('-', '_') else '_' for c in session.project_name)
-                filename = f"{safe_project_name}_{selected_analysis_type.value}_{timestamp_str}.md"
+                default_filename = f"{safe_project_name}_{selected_analysis_type.value}_{timestamp_str}.md"
+
+                # Allow user to customize filename
+                st.divider()
+                st.markdown("### Export Options")
+                filename = st.text_input(
+                    "Filename:",
+                    value=default_filename,
+                    help="Customize the filename for download/save. Must end with .md extension.",
+                    key="custom_filename"
+                )
+
+                # Ensure .md extension
+                if not filename.endswith('.md'):
+                    filename = filename + '.md'
 
                 # Save to file if requested
                 if save_to_file:
