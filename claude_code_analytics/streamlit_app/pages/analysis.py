@@ -579,21 +579,6 @@ try:
                     context_window=context_window,
                 )
 
-                st.success("✅ Analysis complete!")
-
-                # Display token usage
-                if result.input_tokens or result.output_tokens:
-                    col1, col2, col3 = st.columns(3)
-                    col1.metric("Input Tokens", f"{result.input_tokens or 0:,}")
-                    col2.metric("Output Tokens", f"{result.output_tokens or 0:,}")
-                    col3.metric("Model", result.model_name or "N/A")
-
-                st.divider()
-
-                # Display result
-                st.markdown("### Analysis Result")
-                st.markdown(result.result_text)
-
                 # Prepare formatted output with metadata
                 provider_name = type(analysis_service.provider).__name__.replace("Provider", "")
                 formatted_result = format_analysis_with_metadata(
@@ -614,45 +599,75 @@ try:
                 safe_project_name = "".join(c if c.isalnum() or c in ('-', '_') else '_' for c in session.project_name)
                 default_filename = f"{safe_project_name}_{selected_analysis_type.value}_{timestamp_str}.md"
 
-                # Allow user to customize filename
-                st.divider()
-                st.markdown("### Export Options")
-                filename = st.text_input(
-                    "Filename:",
-                    value=default_filename,
-                    help="Customize the filename for download/save. Must end with .md extension.",
-                    key="custom_filename"
-                )
+                # Store result in session state so it persists across reruns
+                st.session_state.analysis_result = result
+                st.session_state.formatted_result = formatted_result
+                st.session_state.default_filename = default_filename
+                st.session_state.save_to_file = save_to_file
 
-                # Ensure .md extension
-                if not filename.endswith('.md'):
-                    filename = filename + '.md'
-
-                # Save to file if requested
-                if save_to_file:
-                    output_dir = config.ANALYSIS_OUTPUT_DIR
-                    output_dir.mkdir(parents=True, exist_ok=True)
-
-                    output_path = output_dir / filename
-
-                    with open(output_path, "w") as f:
-                        f.write(formatted_result)
-
-                    st.success(f"💾 Saved to: `{output_path}`")
-
-                # Download button
-                st.download_button(
-                    label="📥 Download as Markdown",
-                    data=formatted_result,
-                    file_name=filename,
-                    mime="text/markdown",
-                )
+                st.success("✅ Analysis complete!")
 
             except Exception as e:
                 st.error(f"❌ Error running analysis: {e}")
                 import traceback
                 with st.expander("Error details"):
                     st.code(traceback.format_exc())
+
+    # Display results if available (persists across reruns)
+    if "analysis_result" in st.session_state and st.session_state.analysis_result:
+        result = st.session_state.analysis_result
+        formatted_result = st.session_state.formatted_result
+        default_filename = st.session_state.default_filename
+        save_to_file = st.session_state.save_to_file
+
+        # Display token usage
+        if result.input_tokens or result.output_tokens:
+            col1, col2, col3 = st.columns(3)
+            col1.metric("Input Tokens", f"{result.input_tokens or 0:,}")
+            col2.metric("Output Tokens", f"{result.output_tokens or 0:,}")
+            col3.metric("Model", result.model_name or "N/A")
+
+        st.divider()
+
+        # Display result
+        st.markdown("### Analysis Result")
+        st.markdown(result.result_text)
+
+        # Export options
+        st.divider()
+        st.markdown("### Export Options")
+
+        # Allow user to customize filename
+        filename = st.text_input(
+            "Filename:",
+            value=default_filename,
+            help="Customize the filename for download/save. Must end with .md extension.",
+            key="custom_filename"
+        )
+
+        # Ensure .md extension
+        if not filename.endswith('.md'):
+            filename = filename + '.md'
+
+        # Save to file if requested
+        if save_to_file:
+            output_dir = config.ANALYSIS_OUTPUT_DIR
+            output_dir.mkdir(parents=True, exist_ok=True)
+
+            output_path = output_dir / filename
+
+            with open(output_path, "w") as f:
+                f.write(formatted_result)
+
+            st.success(f"💾 Saved to: `{output_path}`")
+
+        # Download button
+        st.download_button(
+            label="📥 Download as Markdown",
+            data=formatted_result,
+            file_name=filename,
+            mime="text/markdown",
+        )
 
 except Exception as e:
     st.error(f"Error loading sessions: {e}")
