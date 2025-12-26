@@ -41,6 +41,7 @@ def format_analysis_with_metadata(
     provider_name: str,
     input_tokens: int,
     output_tokens: int,
+    custom_prompt: str = None,
 ) -> str:
     """Format analysis result with traceability metadata."""
     git_commit = get_git_commit_id()
@@ -60,10 +61,20 @@ def format_analysis_with_metadata(
 - **Output Tokens:** {output_tokens:,}
 - **Tool Version:** `{git_commit[:8]}`
 - **Full Commit:** `{git_commit}`
-
----
-
 """
+
+    # Add custom prompt if provided (for CUSTOM analysis type)
+    if custom_prompt:
+        metadata += f"""
+### Custom Analysis Prompt
+
+```
+{custom_prompt}
+```
+"""
+
+    metadata += "\n---\n\n"
+
     return metadata + result_text
 
 # Initialize services
@@ -591,6 +602,7 @@ try:
                     provider_name=provider_name,
                     input_tokens=result.input_tokens or 0,
                     output_tokens=result.output_tokens or 0,
+                    custom_prompt=custom_prompt if selected_analysis_type == AnalysisType.CUSTOM else None,
                 )
 
                 # Generate default filename with timestamp
@@ -604,6 +616,7 @@ try:
                 st.session_state.formatted_result = formatted_result
                 st.session_state.default_filename = default_filename
                 st.session_state.save_to_file = save_to_file
+                st.session_state.custom_prompt = custom_prompt if selected_analysis_type == AnalysisType.CUSTOM else None
 
                 st.success("✅ Analysis complete!")
 
